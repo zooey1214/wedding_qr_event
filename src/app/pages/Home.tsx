@@ -1,0 +1,319 @@
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router';
+import { ChevronRight, Ticket, BookHeart, Music } from 'lucide-react';
+import { MISSIONS } from '../types/mission';
+import { Icon1 } from '../../components/icons/Icon1';
+import { Icon2 } from '../../components/icons/Icon2';
+import { Icon3 } from '../../components/icons/Icon3';
+import { Icon4 } from '../../components/icons/Icon4';
+import { Icon5 } from '../../components/icons/Icon5';
+import { Icon6 } from '../../components/icons/Icon6';
+import Lottie from 'lottie-react';
+import { secretWordList } from '../../assets/secretWords';
+
+export default function Home() {
+  const [completedMissions, setCompletedMissions] = useState<number[]>([]);
+  const [tickets, setTickets] = useState(0);
+  const [secretWord, setSecretWord] = useState('');
+  const scrollRef = useRef<HTMLDivElement>(null); // Ref 생성
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    // Load from localStorage
+    const saved = localStorage.getItem('missionProgress');
+    if (saved) {
+      const data = JSON.parse(saved);
+      setCompletedMissions(data.completedMissions || []);
+      setTickets(data.tickets || 0);
+      setSecretWord(data.secretWord || generateSecretWord());
+    } else {
+      const word = generateSecretWord();
+      setSecretWord(word);
+      localStorage.setItem('missionProgress', JSON.stringify({
+        completedMissions: [],
+        tickets: 0,
+        secretWord: word
+      }));
+    }
+  }, []);
+
+
+
+  const generateSecretWord = () => {
+
+    const words = ['분리수거 바구니', '설거지', '등기부등본', '리모컨', '축의금 봉투', '비상금'];
+    secretWordList
+    return words[Math.floor(Math.random() * words.length)];
+  };
+
+
+  const completionRate = Math.round((completedMissions.length / MISSIONS.length) * 100);
+
+  return (
+    <div className='w-screen flex flex-col items-center h-screen bg-gradient-to-b from-[#FFF0F5] from-[20%] to-white to-[65%] fixed overflow-y-scroll px-[16px] pb-[100px]' ref={scrollRef}>
+
+      {/* <div className="w-full h-full ">
+
+      </div> */}
+
+      {/* Header */}
+      <div className="flex flex-col w-full bg-transparent">
+        <div className="flex flex-1  flex-col self-start w-[100%] px-[16px] py-8 pt-[80px] text-left">
+          <p className="text-[26px] font-bold text-[#000000] whitespace-pre-line leading-snug">
+            안녕하세요, 김철수님{'\n'}
+            경품 미션에 도전해보세요 :)
+          </p>
+          <p className="mt-2 font-medium text-lg text-gray-500">완료한 스탬프만큼 추첨권을 드려요</p>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-md mx-auto py-6 pt-2">
+        {/* Mission Stamps Grid */}
+        <div className="mb-14">
+          <div className="relative w-full pl-[2%] pr-[2%] py-8 my-2 flex justify-center">
+            <div className="relative w-full aspect-[562/276] max-w-[400px]">
+              {/* Stamp Board Background Path */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none scale-[0.85] origin-center" viewBox="0 0 562 276" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style={{ zIndex: 0 }}>
+                <path d="M10 10H430.5C471 10 551.5 59.2 551.5 145C551.5 230.8 466.5 265.5 430.5 265.5H135" stroke="#FFB2DA" strokeWidth="20" strokeLinecap="round" />
+              </svg>
+
+              {/* Flex Container for Stamps */}
+              <div className="relative z-10 w-full h-full flex flex-col justify-center gap-[34px] py-[4%] ">
+                {/* Top Row: 3 Stamps */}
+                <div className="flex justify-center gap-[16px]  ">
+                  {[0, 1, 2].map((idx) => {
+                    const mission = MISSIONS[idx];
+                    const isCompleted = completedMissions.includes(mission.id);
+                    const IconComp = mission.id === 1 ? Icon6 : mission.id === 2 ? Icon1 : mission.id === 3 ? Icon2 : mission.id === 4 ? Icon3 : mission.id === 5 ? Icon4 : Icon5;
+
+                    return (
+                      <div
+                        key={mission.id}
+                        className=" flex-col items-center justify-center gap-1 w-[26vw] max-w-[110px] "
+                        onClick={() => {
+                          if (scrollRef.current) {
+                            scrollRef.current.scrollTo(0, 0);
+                          }
+                          navigate(`/mission/${mission.id}`, {
+                            preventScrollReset: true
+                          })
+                        }}
+                      >
+                        <div className={`
+                          p-[2.5vw] min-w-[76px] min-h-[76px] aspect-square rounded-full flex flex-col items-center justify-center
+                          transition-all duration-300 shadow-sm relative
+                          ${isCompleted
+                            ? 'bg-[#FFFAFC] border-[2px] border-rose-400 scale-[1] shadow-md'
+                            : 'bg-[#FFFAFC] border-[1px] border-dashed border-rose-200'
+                          }
+                        `}>
+                          {isCompleted ? (
+                            <>
+                              <div className="flex flex-col items-center justify-center w-full h-full pt-1" style={{ gap: '0px' }}>
+                                <IconComp className="w-9 h-9 opacity-90 scale-[1]" />
+                              </div>
+                              <div className="absolute -bottom-1 -right-1 w-7 h-7 z-20">
+                                <svg width="100%" height="100%" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <circle cx="14" cy="14" r="14" fill="#fb7185" />
+                                  <path d="M8 14L12.5 18.5L20 9" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </div>
+                            </>
+                          ) : (
+                            <IconComp className="w-14 h-14 p-2 opacity-40 grayscale" />
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Bottom Row: 3 Stamps */}
+                <div className="flex justify-center gap-[16px] w-full ">
+                  {[5, 4, 3].map((idx) => {
+                    const mission = MISSIONS[idx];
+                    const isCompleted = completedMissions.includes(mission.id);
+                    const IconComp = mission.id === 1 ? Icon6 : mission.id === 2 ? Icon1 : mission.id === 3 ? Icon2 : mission.id === 4 ? Icon3 : mission.id === 5 ? Icon4 : Icon5;
+
+                    return (
+                      <div
+                        key={mission.id}
+                        className="flex-col items-center justify-center gap-1 w-[26vw] max-w-[110px]"
+                        onClick={() => {
+                          if (scrollRef.current) {
+                            scrollRef.current.scrollTo(0, 0);
+                          }
+                          navigate(`/mission/${mission.id}`, {
+                            preventScrollReset: true
+                          })
+                        }}
+                      >
+                        <div className={`
+                          p-[2.5vw] min-w-[76px] min-h-[76px] aspect-square rounded-full flex flex-col items-center justify-center
+                          transition-all duration-300 shadow-sm relative
+                          ${isCompleted
+                            ? 'bg-[#FFFAFC] border-[2px] border-rose-400 shadow-md'
+                            : 'bg-[#FFFAFC] border-[1px] border-dashed border-rose-200'
+                          }
+                        `}
+                        >
+                          {isCompleted ? (
+                            <>
+                              <div className="flex flex-col items-center justify-center w-full h-full pt-1" style={{ gap: '0px' }}>
+                                <IconComp className="w-9 h-9 opacity-90 scale-[1.05]" />
+                              </div>
+                              <div className="absolute -bottom-1 -right-1 w-7 h-7 z-20">
+                                <svg width="100%" height="100%" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <circle cx="14" cy="14" r="14" fill="#fb7185" />
+                                  <path d="M8 14L12.5 18.5L20 9" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </div>
+                            </>
+                          ) : (
+                            <IconComp className="w-14 h-14 p-2 opacity-40 grayscale" />
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mission List */}
+        <div className="flex flex-col gap-3 mb-6">
+          {MISSIONS.map((mission) => {
+            const isCompleted = completedMissions.includes(mission.id);
+            if (isCompleted) return null;
+
+            // Select the matching icon component
+            const IconComp = mission.id === 1 ? Icon6 :
+              mission.id === 2 ? Icon1 :
+                mission.id === 3 ? Icon2 :
+                  mission.id === 4 ? Icon3 :
+                    mission.id === 5 ? Icon4 :
+                      mission.id === 6 ? Icon5 : () => null;
+
+            let formattedDesc = mission.description.replace(/\n/g, ' ');
+            if (mission.id === 1) formattedDesc = formattedDesc.replace('내 식사자리(지정석)를 확인해주세요!', '내 식사자리(지정석)를\n확인해주세요!');
+            if (mission.id === 2) formattedDesc = formattedDesc.replace('멋진 사진을 촬영하고 업로드해주세요!', '멋진 사진을 촬영하고\n업로드해주세요!');
+            if (mission.id === 3) formattedDesc = formattedDesc.replace('하객과 함께 하트를 만들고 셀카를 촬영해주세요!', '하객과 함께\n하트를 만들고 셀카를 촬영해주세요!');
+            if (mission.id === 4) formattedDesc = formattedDesc.replace('물건을 찾아 사진을 촬영해주세요!', '물건을 찾아\n사진을 촬영해주세요!');
+            if (mission.id === 5) formattedDesc = formattedDesc.replace('나와 같은 비밀의 단어를 가진 사람을 찾아보세요', '비밀의 단어를\n가진 사람을 찾아보세요');
+            if (mission.id === 6) formattedDesc = formattedDesc.replace('오늘 식사에 들어가는 요리를 맞춰보세요!', '식사에 들어가는\n요리를 맞춰보세요!');
+
+            return (
+              <Link
+                to={`/mission/${mission.id}`}
+                key={mission.id}
+                className={`
+                  block bg-white rounded-[20px] p-5 
+                  transition-all duration-300 hover:-translate-y-1 active:scale-[0.98]
+                  flex flex-col justify-start gap-4 relative overflow-hidden group
+                  hover:bg-rose-50 active:bg-rose-50/60
+                `}
+                style={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)' }}
+              >
+                <div className="absolute inset-0 rounded-[20px] border-[0.75px] border-black/10 pointer-events-none z-10 group-hover:border-rose-300 group-active:border-rose-300 transition-colors"></div>
+                <div className="flex justify-between items-start mb-1 relative z-0">
+                  <h3 className="font-semibold text-lg flex-1 pr-1 leading-tight text-[#363638]">
+                    {mission.title}
+                  </h3>
+                  <ChevronRight className="w-5 h-5 flex-shrink-0 text-[#363638]" />
+                </div>
+
+                <div className="flex justify-between items-end gap-2 mt-auto">
+                  <div className="flex-1 w-full">
+                    {!isCompleted && (
+                      <p className="text-sm text-gray-500 whitespace-pre-line leading-relaxed pb-1 ">
+                        {formattedDesc}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="ml-2 flex-shrink-0 flex items-center justify-center">
+                    <IconComp className="w-10 h-10 object-contain" />
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Special Missions */}
+        <div className="grid grid-cols-2 gap-3 pb-6">
+          <Link
+            to="/guestbook"
+            className="block bg-white rounded-[20px] hover:-translate-y-1 active:scale-[0.98] transition-all overflow-hidden relative"
+            style={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)' }}
+          >
+            <div className="absolute inset-0 rounded-[20px] border-[0.75px] border-black/10 pointer-events-none z-10"></div>
+            <div className="flex flex-col h-full relative z-0">
+              <div className="w-full h-[120px] bg-gradient-to-br from-rose-200 to-rose-400 flex items-center justify-center relative">
+                <img src="/img5.png" alt="한마디 남기기 이미지" className="w-[88%] h-full scale-[0.7] object-contain drop-shadow-sm absolute bottom-0" />
+              </div>
+              <div className="p-4 pt-4 w-full text-left bg-white">
+                <p className="text-sm font-semibold text-rose-500 mb-1">축하 메시지 남기기</p>
+                <h3 className="text-lg font-bold text-base leading-tight text-[#363638]">한마디 남기기</h3>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/bgm"
+            className="block bg-white rounded-[20px] hover:-translate-y-1 active:scale-[0.98] transition-all overflow-hidden relative"
+            style={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)' }}
+          >
+            <div className="absolute inset-0 rounded-[20px] border-[0.75px] border-black/10 pointer-events-none z-10"></div>
+            <div className="flex flex-col h-full relative z-0">
+              <div className="w-full h-[120px] bg-gradient-to-br from-lime-200 to-lime-500 flex items-center justify-center relative">
+                <img src="/img4.png" alt="BGM 신청 이미지" className="w-[88%] h-full scale-[0.7] object-contain drop-shadow-sm absolute bottom-0" />
+              </div>
+              <div className="p-4 pt-4 w-full text-left bg-white">
+                <p className="text-sm font-semibold text-lime-700 mb-1">듣고 싶은 노래 신청</p>
+                <h3 className="text-lg font-bold text-base leading-tight text-[#363638]">BGM 신청</h3>
+              </div>
+            </div>
+          </Link>
+        </div>
+      </div>
+      <div className="flex flex-col items-center mt-8 mb-24 space-y-4">
+        <p className="text-sm font-medium text-[#8E8E93]">
+          © 2024 Wedding Event
+        </p>
+        <button
+          onClick={() => {
+            if (window.confirm('모든 미션 진행 상황을 초기화하시겠습니까?')) {
+              localStorage.removeItem('missionProgress');
+              window.location.reload();
+            }
+          }}
+          className="text-xs text-gray-400 underline hover:text-gray-600 px-4 py-2"
+        >
+          미션 테스트 리셋
+        </button>
+      </div>
+
+      {/* Sticky Check Tickets Button (Bottom) */}
+      {
+        tickets > 0 && (
+          <div className="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)' }}>
+            <div className="max-w-md mx-auto pointer-events-auto">
+              <Link
+                to="/tickets"
+                className="w-full bg-[#000000] text-white font-bold py-4 rounded-[16px] shadow-lg flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-[0.98] transition-transform"
+              >
+                <Ticket className="w-6 h-6" />
+                내 추첨 번호 {tickets}개 보기
+              </Link>
+            </div>
+          </div>
+        )
+      }
+    </div >
+
+  );
+}
