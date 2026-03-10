@@ -20,6 +20,10 @@ export default function Guestbook() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    const guestName = localStorage.getItem('guestName');
+    if (guestName) {
+      setName(guestName);
+    }
   }, []);
 
   useEffect(() => {
@@ -36,11 +40,11 @@ export default function Guestbook() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim() || !message.trim()) return;
+    if (!message.trim()) return;
 
     const newEntry: GuestbookEntry = {
       id: Date.now().toString(),
-      name: name.trim(),
+      name: name.trim() || '게스트',
       message: message.trim(),
       timestamp: new Date()
     };
@@ -86,21 +90,7 @@ export default function Guestbook() {
           {!submitted ? (
             <div className="bg-white rounded-[20px] p-6 mb-6">
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    이름
-                  </label>
-                  <div>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="이름을 입력해주세요"
-                      className="w-full px-4 py-3 border-[0.75px] border-[#000000]/10 rounded-xl focus:bg-pink-50 focus:border-rose-200 focus:outline-none transition-colors bg-[#F4F4F5]"
-                      required
-                    />
-                  </div>
-                </div>
+
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -123,7 +113,7 @@ export default function Guestbook() {
 
                 <button
                   type="submit"
-                  disabled={!name.trim() || !message.trim()}
+                  disabled={!message.trim()}
                   className="w-full px-[12px] py-[12px] bg-gradient-to-r from-rose-300 to-rose-400 text-white rounded-[12px] font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2 border-[0.75px] border-transparent disabled:opacity-100 disabled:bg-none disabled:bg-[#F4F4F5] disabled:text-[#37383C]/28 disabled:cursor-not-allowed"
                 >
                   <Send className="w-5 h-5" />
