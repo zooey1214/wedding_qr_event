@@ -22,6 +22,10 @@ export default function BgmRequest() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    const guestName = localStorage.getItem('guestName');
+    if (guestName) {
+      setName(guestName);
+    }
   }, []);
 
   useEffect(() => {
@@ -38,11 +42,11 @@ export default function BgmRequest() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim() || !song.trim()) return;
+    if (!song.trim()) return;
 
     const newRequest: BgmRequest = {
       id: Date.now().toString(),
-      name: name.trim(),
+      name: name.trim() || '게스트',
       song: song.trim(),
       artist: artist.trim(),
       timestamp: new Date()
@@ -87,21 +91,7 @@ export default function BgmRequest() {
         {!submitted ? (
           <div className="bg-white rounded-[20px] p-6 mb-6">
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  이름
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="이름을 입력해주세요"
-                    className="w-full px-4 py-3 border-[0.75px] border-[#000000]/10 rounded-xl focus:bg-lime-50 focus:border-lime-400 focus:outline-none transition-colors relative z-10 bg-[#F4F4F5]"
-                    required
-                  />
-                </div>
-              </div>
+
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -138,7 +128,7 @@ export default function BgmRequest() {
 
               <button
                 type="submit"
-                disabled={!name.trim() || !song.trim()}
+                disabled={!song.trim()}
                 className="w-full px-[12px] py-[12px] bg-gradient-to-r from-lime-400 to-lime-500 text-white rounded-[12px] font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2 border-[0.75px] border-transparent disabled:opacity-100 disabled:bg-none disabled:bg-[#F4F4F5] disabled:text-[#37383C]/28 disabled:cursor-not-allowed"
               >
                 <Music className="w-5 h-5" />
@@ -170,7 +160,7 @@ export default function BgmRequest() {
                 {requests.map((request, index) => (
                   <div
                     key={request.id}
-                    className="p-4 flex items-start gap-4"
+                    className="p-4 flex items-start gap-4 border-b border-[#000000]/10 last:border-b-0"
                   >
                     <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-lime-400 to-lime-500 rounded-full flex items-center justify-center">
                       <span className="text-white font-bold">{index + 1}</span>

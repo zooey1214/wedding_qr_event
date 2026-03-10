@@ -136,7 +136,7 @@ export default function Tickets() {
             <div className="flex flex-col items-center w-full">
               <div className="transition-opacity duration-1000 opacity-100 flex flex-col items-center w-full">
                 <div className="w-full mt-4 -mb-[53px] pointer-events-none z-0 relative flex justify-center items-end pb-2">
-                  {/* Animation removed */}
+                  <div className="h-10" />
                 </div>
                 
                 <div className="w-full flex flex-col items-center">
@@ -144,15 +144,26 @@ export default function Tickets() {
                     <ResultTopDeco className="w-[110%] h-auto max-w-none -mb-[30px]" />
                   </div>
                   
-                  <div className="bg-cyan-50 border-[1.5px] border-cyan-200 rounded-t-none rounded-b-[20px] px-6 py-[44px] text-center w-full flex-col flex relative z-10 m-0" style={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)' }}>
-                    <div className="flex flex-wrap justify-center gap-6">
+                  <div className="bg-cyan-50 border-[1.5px] border-cyan-200 rounded-t-none rounded-b-[20px] px-4 py-[44px] text-center w-full flex-col flex relative z-10 m-0" style={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)' }}>
+                    <div className="flex flex-wrap justify-center gap-3">
                       {ticketNumbers.map((num, idx) => (
                         <div
                           key={idx}
-                          className="w-32 h-32 flex flex-col items-center justify-center p-4 relative overflow-hidden transform hover:scale-105 active:scale-95 transition-transform shrink-0"
+                          className="relative flex items-center justify-center p-0 flex-shrink-0"
+                          style={{
+                            width: 'calc(33.333% - 8px)',
+                            minWidth: '70px',
+                            maxWidth: '120px'
+                          }}
                         >
-                          <img src="/ball.png" alt="추첨권" className="absolute w-24 h-24 object-contain opacity-30" />
-                          <span className="text-4xl font-bold text-[#E83E7A] z-10 mb-1">{num}</span>
+                          <svg className="w-[85%] h-auto drop-shadow-sm" viewBox="0 0 176 169" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="87.5" cy="84.5" r="84" fill="#CEFAFE" stroke="#A2F4FD"/>
+                            <path d="M171.997 85C171.728 131.438 134.001 169 87.5 169C40.9987 169 3.272 131.438 3.00293 85H171.997Z" fill="#FFA1AD"/>
+                            <rect y="74" width="176" height="22" rx="4" fill="#FFCCD3"/>
+                          </svg>
+                          <span className="absolute font-black text-rose-900 z-10" style={{ fontSize: 'clamp(1.5rem, 6vw, 2rem)', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', marginTop: '-2px' }}>
+                            {num}
+                          </span>
                         </div>
                       ))}
                     </div>

@@ -49,16 +49,10 @@ export default function MissionDetail() {
     }
     return false;
   });
-  const [seatCheckText, setSeatCheckText] = useState('두구두구');
-
-  useEffect(() => {
-    setTimeout(() => {
-      // window.scrollTo(0, 0);
-      // alert("움직여")
-    }, 300)
-  }, []);
-
-
+  const [seatCheckText, setSeatCheckText] = useState('아, 식사 지정석이요?\n성함이 어떻게 되시죠?');
+  const [fakeNames, setFakeNames] = useState<string[]>([]);
+  const [selectedSeatOption, setSelectedSeatOption] = useState<number | null>(null);
+  const [seatQuizSubmitted, setSeatQuizSubmitted] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('missionProgress');
@@ -76,40 +70,20 @@ export default function MissionDetail() {
     }
   }, [missionId]);
 
-  // Handle typing effect and delay for the first mission (Seat Check)
+  // Handle setup for the first mission (Seat Check)
   useEffect(() => {
-    if (mission?.id === 1 && !hasVisitedSeatCheck) {
-      let dotsCount = 0;
-      const textInterval = setInterval(() => {
-        if (dotsCount < 3) {
-          dotsCount += 1;
-        }
-        setSeatCheckText(`두구두구\n내 식사 지정석은?${'.'.repeat(dotsCount)}`);
-      }, 500);
+    if (mission?.id === 1) {
+      const guestName = localStorage.getItem('guestName') || '게스트';
+      // Shuffle names (for layout only; keeping simple)
+      const options = ['김칠수입니다', '김철수입니다', '김명수입니다', '김철희입니다'];
+      const actualNameIdx = Math.floor(Math.random() * 4);
+      options[actualNameIdx] = `${guestName}입니다`;
+      setFakeNames(options);
 
-      const delayTimeout = setTimeout(() => {
-        clearInterval(textInterval);
-        setSeatCheckText(`두구두구\n내 식사 지정석은?...`);
+      if (hasVisitedSeatCheck) {
         setShowSeatResult(true);
-
-        // Save visit state to local storage to skip animation in the future
-        const saved = localStorage.getItem('missionProgress');
-        const data = saved ? JSON.parse(saved) : {};
-        data.hasVisitedSeatCheck = true;
-        localStorage.setItem('missionProgress', JSON.stringify(data));
-        setHasVisitedSeatCheck(true);
-
-        if (!isCompleted && !completedMissions.includes(missionId)) {
-          completeMissionWithoutRedirect();
-        }
-      }, 3000);
-
-      return () => {
-        clearInterval(textInterval);
-        clearTimeout(delayTimeout);
-      };
-    } else if (mission?.id === 1 && hasVisitedSeatCheck) {
-      setShowSeatResult(true);
+        setSeatCheckText(`아 ${guestName}님이요~\n잠시만요 자리가…`);
+      }
     }
   }, [mission, hasVisitedSeatCheck]);
 
@@ -243,14 +217,10 @@ export default function MissionDetail() {
 
   return (
     <div className="min-h-screen bg-white relative" ref={scrollRef}>
-      {/* Header - Sticky Back Button Only */}
       <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm pt-4 pb-4">
         <div className="max-w-md mx-auto px-6">
           <button
-            onClick={() => {
-              // scrollRef.current?.scrollTo(0, 0)
-              navigate(-1)
-            }}
+            onClick={() => navigate(-1)}
             className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors flex w-fit"
           >
             <ArrowLeft className="w-6 h-6 text-gray-700" />
@@ -258,13 +228,57 @@ export default function MissionDetail() {
         </div>
       </div>
 
+      {/* Secret Word fixed background SVG */}
+      {mission.type === 'qr' && (
+        <div className="fixed bottom-0 left-0 right-0 w-full pointer-events-none z-0 overflow-hidden flex justify-center">
+          <svg className="w-full max-w-md" viewBox="0 0 606 736" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <g clipPath="url(#clip0_2028_6)">
+              <rect width="606" height="736" fill="white"/>
+              <g filter="url(#filter0_d_2028_6)">
+                <rect x="-315.284" y="260.183" width="416.626" height="800" rx="27.0244" transform="rotate(-27.5381 -315.284 260.183)" fill="#FFF8F9"/>
+                <rect x="-314.778" y="260.342" width="415.876" height="799.25" rx="26.6494" transform="rotate(-27.5381 -314.778 260.342)" stroke="black" strokeOpacity="0.2" strokeWidth="0.75"/>
+              </g>
+              <g filter="url(#filter1_d_2028_6)">
+                <rect width="416.626" height="800" rx="27.0244" transform="matrix(-0.886703 -0.462339 -0.462339 0.886703 921.132 260.183)" fill="#FFF8F9"/>
+                <rect x="-0.505891" y="0.159137" width="415.876" height="799.25" rx="26.6494" transform="matrix(-0.886703 -0.462339 -0.462339 0.886703 920.251 259.967)" stroke="black" strokeOpacity="0.2" strokeWidth="0.75"/>
+              </g>
+            </g>
+            <defs>
+              <filter id="filter0_d_2028_6" x="-339.637" y="20.6874" width="788.001" height="950.692" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+                <feFlood floodOpacity="0" result="BackgroundImageFix"/>
+                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                <feOffset dy="-22.5203"/>
+                <feGaussianBlur stdDeviation="16.8902"/>
+                <feComposite in2="hardAlpha" operator="out"/>
+                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.02 0"/>
+                <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_2028_6"/>
+                <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_2028_6" result="shape"/>
+              </filter>
+              <filter id="filter1_d_2028_6" x="157.484" y="20.6874" width="788.001" height="950.692" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+                <feFlood floodOpacity="0" result="BackgroundImageFix"/>
+                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                <feOffset dy="-22.5203"/>
+                <feGaussianBlur stdDeviation="16.8902"/>
+                <feComposite in2="hardAlpha" operator="out"/>
+                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.02 0"/>
+                <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_2028_6"/>
+                <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_2028_6" result="shape"/>
+              </filter>
+              <clipPath id="clip0_2028_6">
+                <rect width="606" height="736" fill="white"/>
+              </clipPath>
+            </defs>
+          </svg>
+        </div>
+      )}
+
       {/* Static Title Area */}
       <div className="pt-2 pb-2">
         <div className="max-w-md mx-auto px-6">
           <div className="text-center">
             {mission.id === 1 ? (
-              <h1 className="text-[26px] font-bold text-[#000000] mb-2 whitespace-pre-line">
-                {!hasVisitedSeatCheck && !showSeatResult ? seatCheckText : '두구두구\n내 식사 지정석은?...'}
+              <h1 className="text-[26px] font-bold text-[#000000] mb-[2px] whitespace-pre-line">
+                {seatCheckText}
               </h1>
             ) : (
               <>
@@ -301,15 +315,103 @@ export default function MissionDetail() {
 
 
 
-      <div className="max-w-md mx-auto px-6 py-6">
-        <div className="bg-white rounded-[20px] p-6 mb-6">
+      <div className="max-w-md mx-auto px-6 py-6 relative z-10">
+        <div className={`rounded-[20px] p-6 mb-6 ${mission.type === 'qr' ? 'bg-transparent' : 'bg-white'}`}>
 
 
           {
             missionId === 1 && (
               <div className="space-y-4">
-                <div className="text-center flex justify-center w-full mb-8">
-                  {showSeatResult ? (
+                {!hasVisitedSeatCheck ? (
+                  <div className="space-y-4 relative w-full h-full pb-16">
+                    {fakeNames.map((option, index) => {
+                      const guestName = localStorage.getItem('guestName') || '게스트';
+                      const isCorrect = option === `${guestName}입니다`;
+                      
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => !seatQuizSubmitted && setSelectedSeatOption(index)}
+                          disabled={seatQuizSubmitted || showSeatResult}
+                          className={`
+                            w-full p-4 rounded-[20px] border-[0.75px] text-left transition-all
+                            ${seatQuizSubmitted && isCorrect
+                              ? 'border-lime-500 bg-lime-50'
+                              : seatQuizSubmitted && index === selectedSeatOption
+                                ? 'border-red-500 bg-red-50'
+                                : selectedSeatOption === index
+                                  ? 'border-lime-500 bg-lime-50'
+                                  : 'border-[#EBEBF0] hover:border-lime-300'
+                            }
+                            ${seatQuizSubmitted ? 'cursor-not-allowed' : 'cursor-pointer'}
+                          `}
+                        >
+                          <div className="flex items-center gap-3 justify-center ">
+                            <span className={`
+                              font-medium
+                              ${seatQuizSubmitted && isCorrect
+                                ? 'text-lime-700'
+                                : seatQuizSubmitted && index === selectedSeatOption
+                                  ? 'text-red-700'
+                                  : 'text-gray-700'
+                              }
+                            `}>
+                              {option}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  
+                    {seatQuizSubmitted && selectedSeatOption !== null && fakeNames[selectedSeatOption] !== `${localStorage.getItem('guestName') || '게스트'}입니다` && (
+                      <div className="bg-red-50 border-[0.75px] border-red-300 rounded-[20px] p-4 text-center mt-2">
+                        <p className="text-red-700 font-medium">아쉽지만 틀렸습니다. 다시 시도해보세요!</p>
+                        <button
+                          onClick={() => {
+                            setSeatQuizSubmitted(false);
+                            setSelectedSeatOption(null);
+                          }}
+                          className="mt-3 text-red-600 font-medium underline"
+                        >
+                          다시 풀기
+                        </button>
+                      </div>
+                    )}
+
+                    {!seatQuizSubmitted && (
+                      <div className="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)' }}>
+                        <div className="max-w-md mx-auto w-full pointer-events-auto">
+                          <button
+                            onClick={() => {
+                              const guestName = localStorage.getItem('guestName') || '게스트';
+                              const isCorrect = selectedSeatOption !== null && fakeNames[selectedSeatOption] === `${guestName}입니다`;
+                              setSeatQuizSubmitted(true);
+                              
+                              if (isCorrect) {
+                                setTimeout(() => {
+                                  const saved = localStorage.getItem('missionProgress');
+                                  const data = saved ? JSON.parse(saved) : {};
+                                  data.hasVisitedSeatCheck = true;
+                                  localStorage.setItem('missionProgress', JSON.stringify(data));
+                                  setHasVisitedSeatCheck(true);
+                                  
+                                  if (!isCompleted && !completedMissions.includes(missionId)) {
+                                    completeMissionWithoutRedirect();
+                                  }
+                                }, 500);
+                              }
+                            }}
+                            disabled={selectedSeatOption === null || showSeatResult}
+                            className="w-full bg-lime-500 text-white font-bold py-[16px] rounded-[16px] shadow-[0_4px_12px_rgba(132,204,22,0.3)] disabled:shadow-none flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-[0.98] transition-transform disabled:opacity-100 disabled:bg-none disabled:bg-[#F4F4F5] disabled:text-[#37383C]/28 disabled:cursor-not-allowed border-[0.75px] border-transparent"
+                          >
+                            정답 제출
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center flex justify-center w-full mb-8">
                     <div className="transition-opacity duration-1000 opacity-100 flex flex-col items-center">
                       <div className="w-56 h-56 -mb-[53px] pointer-events-none z-0 relative">
                         <Lottie animationData={seatAnimation} loop={true} />
@@ -320,12 +422,8 @@ export default function MissionDetail() {
                         </p>
                       </div>
                     </div>
-                  ) : (
-                    <div className="transition-opacity duration-1000 opacity-100">
-                      <Lottie animationData={searchAnimation} loop={false} />
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )
           }
@@ -336,7 +434,11 @@ export default function MissionDetail() {
                 <h2 className="text-xl font-bold text-gray-800 mb-2 mt-2">웨딩 코스 요리 메뉴</h2>
                 <p className="text-gray-600 mb-6 font-medium text-sm">오늘 제공될 점심 식사 메뉴입니다</p>
 
-                <div className="bg-gradient-to-br from-[#FFF0F5] to-white rounded-[16px] p-6 text-gray-800 space-y-7 font-medium border border-[#FFE2EA] shadow-inner">
+                <div className="bg-gradient-to-br from-[#FFF0F5] to-white rounded-[16px] p-6 text-gray-800 space-y-7 font-medium border border-[#FFE2EA] shadow-inner relative">
+                  <div className="absolute top-0 right-0 translate-x-[calc(40%-24px)] -translate-y-1/2 bg-lime-500 rounded-[24px] px-3 py-1.5 flex items-center gap-1 shadow-md z-30 whitespace-nowrap">
+                    <Check className="w-4 h-4 text-white stroke-[3px]" />
+                    <span className="text-white font-bold text-sm">추첨권 1매</span>
+                  </div>
                   <div className="flex flex-col items-center gap-1.5"><span className="text-3xl mb-1">🥖</span> <div className="text-center"><p className="text-[15px] font-bold">식전 빵</p><p className="text-xs text-gray-500 mt-0.5 font-normal">Fresh Baked Bread</p></div></div>
                   <div className="flex flex-col items-center gap-1.5"><span className="text-3xl mb-1">🥗</span> <div className="text-center"><p className="text-[15px] font-bold">훈제 연어 샐러드</p><p className="text-xs text-gray-500 mt-0.5 font-normal">Smoked Salmon Salad</p></div></div>
                   <div className="flex flex-col items-center gap-1.5"><span className="text-3xl mb-1">🥣</span> <div className="text-center"><p className="text-[15px] font-bold">양송이 크림 수프</p><p className="text-xs text-gray-500 mt-0.5 font-normal">Mushroom Cream Soup</p></div></div>
@@ -375,8 +477,14 @@ export default function MissionDetail() {
                       <img
                         src={uploadedImage}
                         alt="Uploaded"
-                        className="w-full rounded-xl object-cover max-h-96"
+                        className="w-full rounded-xl object-contain max-h-[60vh]"
                       />
+                      {isCompleted && (
+                        <div className="absolute top-0 right-0 translate-x-[calc(40%-24px)] -translate-y-1/2 bg-lime-500 rounded-[24px] px-3 py-1.5 flex items-center gap-1 shadow-md z-30 whitespace-nowrap">
+                          <Check className="w-4 h-4 text-white stroke-[3px]" />
+                          <span className="text-white font-bold text-sm">추첨권 1매</span>
+                        </div>
+                      )}
                       <div className="absolute inset-0 rounded-xl border-[0.75px] border-black/15 pointer-events-none z-10"></div>
                     </div>
 
@@ -433,17 +541,18 @@ export default function MissionDetail() {
             mission.type === 'qr' && (
               <div className="space-y-4 ">
                 <div
-                  className="bg-white rounded-[20px] p-6 text-center mb-[48px] relative overflow-hidden"
+                  className="rounded-[20px] p-6 text-center mb-[48px] relative"
                   style={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)' }}
                 >
                   {isCompleted && (
-                    <div className="absolute top-4 right-4 bg-lime-500 rounded-[24px] px-3 py-1.5 flex items-center gap-1 shadow-sm z-30">
+                    <div className="absolute top-0 right-0 translate-x-[calc(40%-24px)] -translate-y-1/2 bg-lime-500 rounded-[24px] px-3 py-1.5 flex items-center gap-1 shadow-sm z-30 whitespace-nowrap">
                       <Check className="w-4 h-4 text-white stroke-[3px]" />
                       <span className="text-white font-bold text-sm">추첨권 1매</span>
                     </div>
                   )}
+                  <div className="absolute inset-0 rounded-[20px] bg-white pointer-events-none z-0"></div>
                   <div className="absolute inset-0 rounded-[20px] border-[0.75px] border-black/10 pointer-events-none z-10"></div>
-                  <div className="relative z-0 flex flex-col items-center justify-center">
+                  <div className="relative z-10 flex flex-col items-center justify-center">
                     {isCompleted && (
                       <div className="w-32 h-32 mb-2">
                         <Lottie animationData={ideaAnimation} loop={true} />
@@ -474,19 +583,15 @@ export default function MissionDetail() {
                     </div>
 
                     {!isCompleted && (
-                      <>
-                        <p className="text-sm text-rose-800 mt-2 mb-6">
-                          이 단어를 직접 언급하지 말고, 다른 방식으로 설명하여 같은 단어를 가진 사람을 찾아보세요!
-                        </p>
-
-                        {true ? (
-                          <div className="p-4 flex flex-col items-center">
-                            <QRCode value={secretWord || 'wedding_quest_qr_standin'} size={150} fgColor="#831843" />
-                            <p className="text-xs text-rose-500 font-medium mt-3">나의 고유 QR 코드</p>
-                          </div>
-                        ) : null}
-                      </>
+                      <p className="text-sm text-rose-800 mt-2 mb-6">
+                        이 단어를 직접 언급하지 말고, 다른 방식으로 설명하여 같은 단어를 가진 사람을 찾아보세요!
+                      </p>
                     )}
+
+                    <div className="p-4 flex flex-col items-center">
+                      <QRCode value={secretWord || 'wedding_quest_qr_standin'} size={150} fgColor="#831843" />
+                      <p className="text-xs text-rose-500 font-medium mt-3">나의 고유 QR 코드</p>
+                    </div>
                   </div>
                 </div>
                 <div className='h-4' />
@@ -548,28 +653,21 @@ export default function MissionDetail() {
                   className={`
                     w-full p-4 rounded-[20px] border-[0.75px] text-left transition-all
                     ${quizSubmitted && index === mission.quizAnswer
-                      ? 'border-green-500 bg-green-50'
+                      ? 'border-lime-500 bg-lime-50'
                       : quizSubmitted && index === selectedQuiz
                         ? 'border-red-500 bg-red-50'
                         : selectedQuiz === index
-                          ? 'border-emerald-500 bg-emerald-50'
-                          : 'border-[#EBEBF0] hover:border-emerald-300'
+                          ? 'border-lime-500 bg-lime-50'
+                          : 'border-[#EBEBF0] hover:border-lime-300'
                     }
                     ${quizSubmitted ? 'cursor-not-allowed' : 'cursor-pointer'}
                   `}
                 >
                   <div className="flex items-center gap-3 justify-center ">
-                    {/* <div className="w-6 h-6 flex items-center justify-start flex-shrink-0">
-                      <Check className={`w-6 h-6 stroke-[3px] ${(quizSubmitted && index === mission.quizAnswer) ||
-                        (selectedQuiz === index && !quizSubmitted)
-                        ? 'text-[#10B981]'
-                        : 'text-[#D1D1D6]'
-                        }`} />
-                    </div> */}
                     <span className={`
                       font-medium
                       ${quizSubmitted && index === mission.quizAnswer
-                        ? 'text-green-700'
+                        ? 'text-lime-700'
                         : quizSubmitted && index === selectedQuiz
                           ? 'text-red-700'
                           : 'text-gray-700'
@@ -587,7 +685,7 @@ export default function MissionDetail() {
                     <button
                       onClick={handleQuizSubmit}
                       disabled={selectedQuiz === null}
-                      className="w-full bg-[#10B981] text-white font-bold py-[16px] rounded-[16px] shadow-[0_4px_12px_rgba(16,185,129,0.3)] disabled:shadow-none flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-[0.98] transition-transform disabled:opacity-100 disabled:bg-none disabled:bg-[#F4F4F5] disabled:text-[#37383C]/28 disabled:cursor-not-allowed border-[0.75px] border-transparent"
+                      className="w-full bg-lime-500 text-white font-bold py-[16px] rounded-[16px] shadow-[0_4px_12px_rgba(132,204,22,0.3)] disabled:shadow-none flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-[0.98] transition-transform disabled:opacity-100 disabled:bg-none disabled:bg-[#F4F4F5] disabled:text-[#37383C]/28 disabled:cursor-not-allowed border-[0.75px] border-transparent"
                     >
                       정답 제출
                     </button>
@@ -617,7 +715,7 @@ export default function MissionDetail() {
 
       {
         isCompleted && (
-          <div className="fixed bottom-0 left-0 right-0 p-4 pb-8 z-50 pointer-events-none bg-gradient-to-t from-white from-50% via-white/80 to-transparent" style={{ background: 'linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)' }}>
+          <div className="fixed bottom-0 left-0 right-0 p-6 z-50 pointer-events-none bg-gradient-to-t from-white from-50% via-white/80 to-transparent" style={{ background: 'linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)' }}>
             <div className="max-w-md mx-auto pointer-events-auto">
               <button
                 onClick={() => navigate('/')}
