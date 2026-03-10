@@ -1,40 +1,50 @@
-import { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Upload, Camera, QrCode, HelpCircle, Check, Award } from 'lucide-react';
-import QRCode from 'react-qr-code';
-import { Scanner } from '@yudiel/react-qr-scanner';
-import Lottie from 'lottie-react';
-import photoAnimation from '../../assets/photo-animation.json';
-import heartAnimation from '../../assets/heart-animation.json';
-import treasureAnimation from '../../assets/treasure-animation.json';
-import foodAnimation from '../../assets/food-animation.json';
-import ideaAnimation from '../../assets/idea-animation.json';
-import searchAnimation from '../../assets/search-animation.json';
-import seatAnimation from '../../assets/seat-animation.json';
-import { MISSIONS } from '../types/mission';
-import { supabase } from '../../lib/supabase';
-import { secretWordList } from '../../assets/secretWords';
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { useParams, useNavigate } from "react-router";
+import {
+  ArrowLeft,
+  Upload,
+  Camera,
+  QrCode,
+  HelpCircle,
+  Check,
+  Award,
+} from "lucide-react";
+import QRCode from "react-qr-code";
+import { Scanner } from "@yudiel/react-qr-scanner";
+import Lottie from "lottie-react";
+import photoAnimation from "../../assets/photo-animation.json";
+import heartAnimation from "../../assets/heart-animation.json";
+import treasureAnimation from "../../assets/treasure-animation.json";
+import foodAnimation from "../../assets/food-animation.json";
+import ideaAnimation from "../../assets/idea-animation.json";
+import searchAnimation from "../../assets/search-animation.json";
+import seatAnimation from "../../assets/seat-animation.json";
+import { MISSIONS } from "../types/mission";
+import { supabase } from "../../lib/supabase";
+import { secretWordList } from "../../assets/secretWords";
 
 export default function MissionDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const missionId = parseInt(id || '0');
-  const mission = MISSIONS.find(m => m.id === missionId);
+  const missionId = parseInt(id || "0");
+  const mission = MISSIONS.find((m) => m.id === missionId);
 
   const [completedMissions, setCompletedMissions] = useState<number[]>([]);
   const [tickets, setTickets] = useState(0);
-  const [missionImages, setMissionImages] = useState<Record<number, string>>({});
+  const [missionImages, setMissionImages] = useState<Record<number, string>>(
+    {},
+  );
   const [showHint, setShowHint] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState<number | null>(null);
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [showQrScanner, setShowQrScanner] = useState(false);
-  const [secretWord, setSecretWord] = useState('');
+  const [secretWord, setSecretWord] = useState("");
 
   // Seats animation states
   const [hasVisitedSeatCheck, setHasVisitedSeatCheck] = useState(() => {
-    const saved = localStorage.getItem('missionProgress');
+    const saved = localStorage.getItem("missionProgress");
     if (saved) {
       const data = JSON.parse(saved);
       return data.hasVisitedSeatCheck || false;
@@ -42,25 +52,29 @@ export default function MissionDetail() {
     return false;
   });
   const [showSeatResult, setShowSeatResult] = useState(() => {
-    const saved = localStorage.getItem('missionProgress');
+    const saved = localStorage.getItem("missionProgress");
     if (saved) {
       const data = JSON.parse(saved);
       return data.hasVisitedSeatCheck || false;
     }
     return false;
   });
-  const [seatCheckText, setSeatCheckText] = useState('아, 식사 지정석이요?\n성함이 어떻게 되시죠?');
+  const [seatCheckText, setSeatCheckText] = useState(
+    "아, 식사 지정석이요?\n성함이 어떻게 되시죠?",
+  );
   const [fakeNames, setFakeNames] = useState<string[]>([]);
-  const [selectedSeatOption, setSelectedSeatOption] = useState<number | null>(null);
+  const [selectedSeatOption, setSelectedSeatOption] = useState<number | null>(
+    null,
+  );
   const [seatQuizSubmitted, setSeatQuizSubmitted] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('missionProgress');
+    const saved = localStorage.getItem("missionProgress");
     if (saved) {
       const data = JSON.parse(saved);
       setCompletedMissions(data.completedMissions || []);
       setTickets(data.tickets || 0);
-      setSecretWord(data.secretWord || '');
+      setSecretWord(data.secretWord || "");
       setMissionImages(data.missionImages || {});
       setHasVisitedSeatCheck(data.hasVisitedSeatCheck || false);
 
@@ -73,9 +87,14 @@ export default function MissionDetail() {
   // Handle setup for the first mission (Seat Check)
   useEffect(() => {
     if (mission?.id === 1) {
-      const guestName = localStorage.getItem('guestName') || '게스트';
+      const guestName = localStorage.getItem("guestName") || "게스트";
       // Shuffle names (for layout only; keeping simple)
-      const options = ['김칠수입니다', '김철수입니다', '김명수입니다', '김철희입니다'];
+      const options = [
+        "김칠수입니다",
+        "김철수입니다",
+        "김명수입니다",
+        "김철희입니다",
+      ];
       const actualNameIdx = Math.floor(Math.random() * 4);
       options[actualNameIdx] = `${guestName}입니다`;
       setFakeNames(options);
@@ -118,12 +137,12 @@ export default function MissionDetail() {
     reader.readAsDataURL(file);
 
     try {
-      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileExt = file.name.split(".").pop() || "jpg";
       const fileName = `mission_${missionId}_${Date.now()}.${fileExt}`;
       const filePath = `user_uploads/${fileName}`;
 
       const { data, error } = await supabase.storage
-        .from('images')
+        .from("images")
         .upload(filePath, file);
 
       if (error) {
@@ -131,12 +150,12 @@ export default function MissionDetail() {
       }
 
       const { data: publicUrlData } = supabase.storage
-        .from('images')
+        .from("images")
         .getPublicUrl(filePath);
 
       setUploadedImage(publicUrlData.publicUrl);
     } catch (err) {
-      console.error('업로드 실패. 로컬 프리뷰로 유지합니다.', err);
+      console.error("업로드 실패. 로컬 프리뷰로 유지합니다.", err);
     } finally {
       setIsUploading(false);
     }
@@ -152,7 +171,7 @@ export default function MissionDetail() {
         newMissionImages[missionId] = uploadedImage;
       }
 
-      const saved = localStorage.getItem('missionProgress');
+      const saved = localStorage.getItem("missionProgress");
       const savedData = saved ? JSON.parse(saved) : {};
 
       const data = {
@@ -160,10 +179,10 @@ export default function MissionDetail() {
         completedMissions: newCompletedMissions,
         tickets: newTickets,
         secretWord,
-        missionImages: newMissionImages
+        missionImages: newMissionImages,
       };
 
-      localStorage.setItem('missionProgress', JSON.stringify(data));
+      localStorage.setItem("missionProgress", JSON.stringify(data));
       setCompletedMissions(newCompletedMissions);
       setTickets(newTickets);
       setMissionImages(newMissionImages);
@@ -180,7 +199,7 @@ export default function MissionDetail() {
         newMissionImages[missionId] = uploadedImage;
       }
 
-      const saved = localStorage.getItem('missionProgress');
+      const saved = localStorage.getItem("missionProgress");
       const savedData = saved ? JSON.parse(saved) : {};
 
       const data = {
@@ -188,10 +207,10 @@ export default function MissionDetail() {
         completedMissions: newCompletedMissions,
         tickets: newTickets,
         secretWord,
-        missionImages: newMissionImages
+        missionImages: newMissionImages,
       };
 
-      localStorage.setItem('missionProgress', JSON.stringify(data));
+      localStorage.setItem("missionProgress", JSON.stringify(data));
       setCompletedMissions(newCompletedMissions);
       setTickets(newTickets);
       setMissionImages(newMissionImages);
@@ -213,7 +232,7 @@ export default function MissionDetail() {
     setShowQrScanner(false);
     completeMission();
   };
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="min-h-screen bg-white relative" ref={scrollRef}>
@@ -229,43 +248,133 @@ export default function MissionDetail() {
       </div>
 
       {/* Secret Word fixed background SVG */}
-      {mission.type === 'qr' && (
+      {mission.type === "qr" && (
         <div className="fixed bottom-0 left-0 right-0 w-full pointer-events-none z-0 overflow-hidden flex justify-center">
-          <svg className="w-full max-w-md" viewBox="0 0 606 736" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+          <svg
+            className="w-full max-w-md"
+            viewBox="0 0 606 736"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            preserveAspectRatio="none"
+          >
             <g clipPath="url(#clip0_2028_6)">
-              <rect width="606" height="736" fill="white"/>
+              <rect width="606" height="736" fill="white" />
               <g filter="url(#filter0_d_2028_6)">
-                <rect x="-315.284" y="260.183" width="416.626" height="800" rx="27.0244" transform="rotate(-27.5381 -315.284 260.183)" fill="#FFF8F9"/>
-                <rect x="-314.778" y="260.342" width="415.876" height="799.25" rx="26.6494" transform="rotate(-27.5381 -314.778 260.342)" stroke="black" strokeOpacity="0.2" strokeWidth="0.75"/>
+                <rect
+                  x="-315.284"
+                  y="260.183"
+                  width="416.626"
+                  height="800"
+                  rx="27.0244"
+                  transform="rotate(-27.5381 -315.284 260.183)"
+                  fill="#FFF8F9"
+                />
+                <rect
+                  x="-314.778"
+                  y="260.342"
+                  width="415.876"
+                  height="799.25"
+                  rx="26.6494"
+                  transform="rotate(-27.5381 -314.778 260.342)"
+                  stroke="black"
+                  strokeOpacity="0.2"
+                  strokeWidth="0.75"
+                />
               </g>
               <g filter="url(#filter1_d_2028_6)">
-                <rect width="416.626" height="800" rx="27.0244" transform="matrix(-0.886703 -0.462339 -0.462339 0.886703 921.132 260.183)" fill="#FFF8F9"/>
-                <rect x="-0.505891" y="0.159137" width="415.876" height="799.25" rx="26.6494" transform="matrix(-0.886703 -0.462339 -0.462339 0.886703 920.251 259.967)" stroke="black" strokeOpacity="0.2" strokeWidth="0.75"/>
+                <rect
+                  width="416.626"
+                  height="800"
+                  rx="27.0244"
+                  transform="matrix(-0.886703 -0.462339 -0.462339 0.886703 921.132 260.183)"
+                  fill="#FFF8F9"
+                />
+                <rect
+                  x="-0.505891"
+                  y="0.159137"
+                  width="415.876"
+                  height="799.25"
+                  rx="26.6494"
+                  transform="matrix(-0.886703 -0.462339 -0.462339 0.886703 920.251 259.967)"
+                  stroke="black"
+                  strokeOpacity="0.2"
+                  strokeWidth="0.75"
+                />
               </g>
             </g>
             <defs>
-              <filter id="filter0_d_2028_6" x="-339.637" y="20.6874" width="788.001" height="950.692" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-                <feFlood floodOpacity="0" result="BackgroundImageFix"/>
-                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-                <feOffset dy="-22.5203"/>
-                <feGaussianBlur stdDeviation="16.8902"/>
-                <feComposite in2="hardAlpha" operator="out"/>
-                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.02 0"/>
-                <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_2028_6"/>
-                <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_2028_6" result="shape"/>
+              <filter
+                id="filter0_d_2028_6"
+                x="-339.637"
+                y="20.6874"
+                width="788.001"
+                height="950.692"
+                filterUnits="userSpaceOnUse"
+                colorInterpolationFilters="sRGB"
+              >
+                <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                <feColorMatrix
+                  in="SourceAlpha"
+                  type="matrix"
+                  values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+                  result="hardAlpha"
+                />
+                <feOffset dy="-22.5203" />
+                <feGaussianBlur stdDeviation="16.8902" />
+                <feComposite in2="hardAlpha" operator="out" />
+                <feColorMatrix
+                  type="matrix"
+                  values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.02 0"
+                />
+                <feBlend
+                  mode="normal"
+                  in2="BackgroundImageFix"
+                  result="effect1_dropShadow_2028_6"
+                />
+                <feBlend
+                  mode="normal"
+                  in="SourceGraphic"
+                  in2="effect1_dropShadow_2028_6"
+                  result="shape"
+                />
               </filter>
-              <filter id="filter1_d_2028_6" x="157.484" y="20.6874" width="788.001" height="950.692" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-                <feFlood floodOpacity="0" result="BackgroundImageFix"/>
-                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-                <feOffset dy="-22.5203"/>
-                <feGaussianBlur stdDeviation="16.8902"/>
-                <feComposite in2="hardAlpha" operator="out"/>
-                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.02 0"/>
-                <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_2028_6"/>
-                <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_2028_6" result="shape"/>
+              <filter
+                id="filter1_d_2028_6"
+                x="157.484"
+                y="20.6874"
+                width="788.001"
+                height="950.692"
+                filterUnits="userSpaceOnUse"
+                colorInterpolationFilters="sRGB"
+              >
+                <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                <feColorMatrix
+                  in="SourceAlpha"
+                  type="matrix"
+                  values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+                  result="hardAlpha"
+                />
+                <feOffset dy="-22.5203" />
+                <feGaussianBlur stdDeviation="16.8902" />
+                <feComposite in2="hardAlpha" operator="out" />
+                <feColorMatrix
+                  type="matrix"
+                  values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.02 0"
+                />
+                <feBlend
+                  mode="normal"
+                  in2="BackgroundImageFix"
+                  result="effect1_dropShadow_2028_6"
+                />
+                <feBlend
+                  mode="normal"
+                  in="SourceGraphic"
+                  in2="effect1_dropShadow_2028_6"
+                  result="shape"
+                />
               </filter>
               <clipPath id="clip0_2028_6">
-                <rect width="606" height="736" fill="white"/>
+                <rect width="606" height="736" fill="white" />
               </clipPath>
             </defs>
           </svg>
@@ -273,8 +382,8 @@ export default function MissionDetail() {
       )}
 
       {/* Static Title Area */}
-      <div className="pt-2 pb-2">
-        <div className="max-w-md mx-auto px-6">
+      <div className={`pt-2 pb-2 ${missionId === 5 && "sticky top-[76px]"}`}>
+        <div className={`max-w-md mx-auto px-6 `}>
           <div className="text-center">
             {mission.id === 1 ? (
               <h1 className="text-[26px] font-bold text-[#000000] mb-[2px] whitespace-pre-line">
@@ -282,8 +391,12 @@ export default function MissionDetail() {
               </h1>
             ) : (
               <>
-                <h1 className="text-[26px] font-bold text-[#000000] mb-2">{mission.title}</h1>
-                <p className="font-medium text-lg text-gray-500 leading-relaxed whitespace-pre-line">{mission.description}</p>
+                <h1 className="text-[26px] font-bold text-[#000000] mb-2">
+                  {mission.title}
+                </h1>
+                <p className="font-medium text-lg text-gray-500 leading-relaxed whitespace-pre-line">
+                  {mission.description}
+                </p>
               </>
             )}
 
@@ -312,60 +425,70 @@ export default function MissionDetail() {
         </div>
       </div>
 
-
-
-
       <div className="max-w-md mx-auto px-6 py-6 relative z-10">
-        <div className={`rounded-[20px] p-6 mb-6 ${mission.type === 'qr' ? 'bg-transparent' : 'bg-white'}`}>
+        <div
+          className={`rounded-[20px] p-6 mb-6 ${mission.type === "qr" ? "bg-transparent" : "bg-white"}`}
+        >
+          {missionId === 1 && (
+            <div className="space-y-4">
+              {!hasVisitedSeatCheck ? (
+                <div className="space-y-4 relative w-full h-full pb-16">
+                  {fakeNames.map((option, index) => {
+                    const guestName =
+                      localStorage.getItem("guestName") || "게스트";
+                    const isCorrect = option === `${guestName}입니다`;
 
-
-          {
-            missionId === 1 && (
-              <div className="space-y-4">
-                {!hasVisitedSeatCheck ? (
-                  <div className="space-y-4 relative w-full h-full pb-16">
-                    {fakeNames.map((option, index) => {
-                      const guestName = localStorage.getItem('guestName') || '게스트';
-                      const isCorrect = option === `${guestName}입니다`;
-                      
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => !seatQuizSubmitted && setSelectedSeatOption(index)}
-                          disabled={seatQuizSubmitted || showSeatResult}
-                          className={`
+                    return (
+                      <button
+                        key={index}
+                        onClick={() =>
+                          !seatQuizSubmitted && setSelectedSeatOption(index)
+                        }
+                        disabled={seatQuizSubmitted || showSeatResult}
+                        className={`
                             w-full p-4 rounded-[20px] border-[0.75px] text-left transition-all
-                            ${seatQuizSubmitted && isCorrect
-                              ? 'border-lime-500 bg-lime-50'
-                              : seatQuizSubmitted && index === selectedSeatOption
-                                ? 'border-red-500 bg-red-50'
-                                : selectedSeatOption === index
-                                  ? 'border-lime-500 bg-lime-50'
-                                  : 'border-[#EBEBF0] hover:border-lime-300'
+                            ${
+                              seatQuizSubmitted && isCorrect
+                                ? "border-lime-500 bg-lime-50"
+                                : seatQuizSubmitted &&
+                                    index === selectedSeatOption
+                                  ? "border-red-500 bg-red-50"
+                                  : selectedSeatOption === index
+                                    ? "border-lime-500 bg-lime-50"
+                                    : "border-[#EBEBF0] hover:border-lime-300"
                             }
-                            ${seatQuizSubmitted ? 'cursor-not-allowed' : 'cursor-pointer'}
+                            ${seatQuizSubmitted ? "cursor-not-allowed" : "cursor-pointer"}
                           `}
-                        >
-                          <div className="flex items-center gap-3 justify-center ">
-                            <span className={`
+                      >
+                        <div className="flex items-center gap-3 justify-center ">
+                          <span
+                            className={`
                               font-medium
-                              ${seatQuizSubmitted && isCorrect
-                                ? 'text-lime-700'
-                                : seatQuizSubmitted && index === selectedSeatOption
-                                  ? 'text-red-700'
-                                  : 'text-gray-700'
+                              ${
+                                seatQuizSubmitted && isCorrect
+                                  ? "text-lime-700"
+                                  : seatQuizSubmitted &&
+                                      index === selectedSeatOption
+                                    ? "text-red-700"
+                                    : "text-gray-700"
                               }
-                            `}>
-                              {option}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  
-                    {seatQuizSubmitted && selectedSeatOption !== null && fakeNames[selectedSeatOption] !== `${localStorage.getItem('guestName') || '게스트'}입니다` && (
+                            `}
+                          >
+                            {option}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+
+                  {seatQuizSubmitted &&
+                    selectedSeatOption !== null &&
+                    fakeNames[selectedSeatOption] !==
+                      `${localStorage.getItem("guestName") || "게스트"}입니다` && (
                       <div className="bg-red-50 border-[0.75px] border-red-300 rounded-[20px] p-4 text-center mt-2">
-                        <p className="text-red-700 font-medium">아쉽지만 틀렸습니다. 다시 시도해보세요!</p>
+                        <p className="text-red-700 font-medium">
+                          아쉽지만 틀렸습니다. 다시 시도해보세요!
+                        </p>
                         <button
                           onClick={() => {
                             setSeatQuizSubmitted(false);
@@ -378,272 +501,382 @@ export default function MissionDetail() {
                       </div>
                     )}
 
-                    {!seatQuizSubmitted && (
-                      <div className="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)' }}>
-                        <div className="max-w-md mx-auto w-full pointer-events-auto">
-                          <button
-                            onClick={() => {
-                              const guestName = localStorage.getItem('guestName') || '게스트';
-                              const isCorrect = selectedSeatOption !== null && fakeNames[selectedSeatOption] === `${guestName}입니다`;
-                              setSeatQuizSubmitted(true);
-                              
-                              if (isCorrect) {
-                                setTimeout(() => {
-                                  const saved = localStorage.getItem('missionProgress');
-                                  const data = saved ? JSON.parse(saved) : {};
-                                  data.hasVisitedSeatCheck = true;
-                                  localStorage.setItem('missionProgress', JSON.stringify(data));
-                                  setHasVisitedSeatCheck(true);
-                                  
-                                  if (!isCompleted && !completedMissions.includes(missionId)) {
-                                    completeMissionWithoutRedirect();
-                                  }
-                                }, 500);
-                              }
-                            }}
-                            disabled={selectedSeatOption === null || showSeatResult}
-                            className="w-full bg-lime-500 text-white font-bold py-[16px] rounded-[16px] shadow-[0_4px_12px_rgba(132,204,22,0.3)] disabled:shadow-none flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-[0.98] transition-transform disabled:opacity-100 disabled:bg-none disabled:bg-[#F4F4F5] disabled:text-[#37383C]/28 disabled:cursor-not-allowed border-[0.75px] border-transparent"
-                          >
-                            정답 제출
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center flex justify-center w-full mb-8">
-                    <div className="transition-opacity duration-1000 opacity-100 flex flex-col items-center">
-                      <div className="w-56 h-56 -mb-[53px] pointer-events-none z-0 relative">
-                        <Lottie animationData={seatAnimation} loop={true} />
-                      </div>
-                      <div className="bg-fuchsia-300 border-[0.75px] border-black/10 rounded-[20px] px-6 py-[44px] text-center w-full flex-col flex relative z-10 m-0" style={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)' }}>
-                        <p className="text-4xl font-bold text-[#000000] my-0 flex justify-center items-baseline gap-1">
-                          15<span className="text-xl">번</span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          }
-
-          {
-            isCompleted && missionId === 6 && (
-              <div className="text-center mb-2 pb-12 ">
-                <h2 className="text-xl font-bold text-gray-800 mb-2 mt-2">웨딩 코스 요리 메뉴</h2>
-                <p className="text-gray-600 mb-6 font-medium text-sm">오늘 제공될 점심 식사 메뉴입니다</p>
-
-                <div className="bg-gradient-to-br from-[#FFF0F5] to-white rounded-[16px] p-6 text-gray-800 space-y-7 font-medium border border-[#FFE2EA] shadow-inner relative">
-                  <div className="absolute top-0 right-0 translate-x-[calc(40%-24px)] -translate-y-1/2 bg-lime-500 rounded-[24px] px-3 py-1.5 flex items-center gap-1 shadow-md z-30 whitespace-nowrap">
-                    <Check className="w-4 h-4 text-white stroke-[3px]" />
-                    <span className="text-white font-bold text-sm">추첨권 1매</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-1.5"><span className="text-3xl mb-1">🥖</span> <div className="text-center"><p className="text-[15px] font-bold">식전 빵</p><p className="text-xs text-gray-500 mt-0.5 font-normal">Fresh Baked Bread</p></div></div>
-                  <div className="flex flex-col items-center gap-1.5"><span className="text-3xl mb-1">🥗</span> <div className="text-center"><p className="text-[15px] font-bold">훈제 연어 샐러드</p><p className="text-xs text-gray-500 mt-0.5 font-normal">Smoked Salmon Salad</p></div></div>
-                  <div className="flex flex-col items-center gap-1.5"><span className="text-3xl mb-1">🥣</span> <div className="text-center"><p className="text-[15px] font-bold">양송이 크림 수프</p><p className="text-xs text-gray-500 mt-0.5 font-normal">Mushroom Cream Soup</p></div></div>
-                  <div className="flex flex-col items-center gap-1.5"><span className="text-3xl mb-1">🥩</span> <div className="text-center"><p className="text-[15px] font-bold">안심 스테이크</p><p className="text-xs text-gray-500 mt-0.5 font-normal">Tenderloin Steak</p></div></div>
-                  <div className="flex flex-col items-center gap-1.5"><span className="text-3xl mb-1">🍰</span> <div className="text-center"><p className="text-[15px] font-bold">티라미수 케이크</p><p className="text-xs text-gray-500 mt-0.5 font-normal">Tiramisu Cake</p></div></div>
-                  <div className="flex flex-col items-center gap-1.5"><span className="text-3xl mb-1">☕</span> <div className="text-center"><p className="text-[15px] font-bold">커피 또는 홍차</p><p className="text-xs text-gray-500 mt-0.5 font-normal">Coffee or Tea</p></div></div>
-                </div>
-              </div>
-            )
-          }
-
-          {/* Photo Upload Missions */}
-          {
-            mission.type === 'photo' && (
-              <div className="space-y-4">
-                {!isCompleted && !uploadedImage && mission.hint && (
-                  <div className="mb-4">
-                    <button
-                      onClick={() => setShowHint(!showHint)}
-                      className="flex justify-center items-center gap-1 text-rose-400 font-medium hover:text-rose-500 w-full"
+                  {!seatQuizSubmitted && (
+                    <div
+                      className="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none"
+                      style={{
+                        background:
+                          "linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)",
+                      }}
                     >
-                      힌트
-                      <HelpCircle className="w-5 h-5" />
-                    </button>
-                    {showHint && (
-                      <div className="mt-3 bg-rose-50 border-[0.75px] border-rose-200 rounded-xl p-4 mb-[80px]">
-                        <p className="text-rose-700">{mission.hint}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      <div className="max-w-md mx-auto w-full pointer-events-auto">
+                        <button
+                          onClick={() => {
+                            const guestName =
+                              localStorage.getItem("guestName") || "게스트";
+                            const isCorrect =
+                              selectedSeatOption !== null &&
+                              fakeNames[selectedSeatOption] ===
+                                `${guestName}입니다`;
+                            setSeatQuizSubmitted(true);
 
-                {uploadedImage ? (
-                  <div className="space-y-4">
-                    <div className="relative w-full h-auto">
-                      <img
-                        src={uploadedImage}
-                        alt="Uploaded"
-                        className="w-full rounded-xl object-contain max-h-[60vh]"
-                      />
-                      {isCompleted && (
-                        <div className="absolute top-0 right-0 translate-x-[calc(40%-24px)] -translate-y-1/2 bg-lime-500 rounded-[24px] px-3 py-1.5 flex items-center gap-1 shadow-md z-30 whitespace-nowrap">
-                          <Check className="w-4 h-4 text-white stroke-[3px]" />
-                          <span className="text-white font-bold text-sm">추첨권 1매</span>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 rounded-xl border-[0.75px] border-black/15 pointer-events-none z-10"></div>
-                    </div>
+                            if (isCorrect) {
+                              setTimeout(() => {
+                                const saved =
+                                  localStorage.getItem("missionProgress");
+                                const data = saved ? JSON.parse(saved) : {};
+                                data.hasVisitedSeatCheck = true;
+                                localStorage.setItem(
+                                  "missionProgress",
+                                  JSON.stringify(data),
+                                );
+                                setHasVisitedSeatCheck(true);
 
-                    <div className='h-12' />
-
-                    {!isCompleted && (
-                      <div className="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)' }}>
-                        <div className="max-w-md mx-auto flex gap-3 w-full  pointer-events-auto">
-                          <button
-                            onClick={() => setUploadedImage(null)}
-                            className="flex-1 px-[16px] py-[16px] bg-[#ffffff] text-rose-400 rounded-[16px] font-bold hover:bg-pink-50 hover:-translate-y-1 active:scale-[0.98] transition-all border-[1px] border-rose-300 shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
-                          >
-                            다시 촬영
-                          </button>
-                          <button
-                            onClick={completeMission}
-                            disabled={isUploading}
-                            className="flex-[2] py-[16px] bg-rose-400 text-white rounded-[16px] font-bold shadow-[0_4px_12px_rgba(247,50,149,0.3)] hover:-translate-y-1 active:scale-[0.98] transition-transform border-[0.75px] border-transparent disabled:opacity-50"
-                          >
-                            {isUploading ? '업로드 중...' : '미션 완료'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : !isCompleted ? (
-                  <div className="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)' }}>
-                    {/* <div className="fixed bottom-0 left-0 right-0 pt-24 pb-8 z-50 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)' }}> */}
-                    <div className="max-w-md mx-auto w-full pointer-events-auto">
-                      <label className="block w-full cursor-pointer">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          onChange={handleImageUpload}
-                          className="hidden"
-                        />
-                        <div className="w-full bg-rose-400 text-white font-bold py-[16px] rounded-[16px] shadow-[0_4px_12px_rgba(247,50,149,0.3)] flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-[0.98] transition-all cursor-pointer">
-                          <Camera className="w-6 h-6" />
-                          사진 촬영하기
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-                ) : null}
-
-
-              </div>
-            )
-          }
-
-          {/* QR Mission */}
-          {
-            mission.type === 'qr' && (
-              <div className="space-y-4 ">
-                <div
-                  className="rounded-[20px] p-6 text-center mb-[48px] relative"
-                  style={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)' }}
-                >
-                  {isCompleted && (
-                    <div className="absolute top-0 right-0 translate-x-[calc(40%-24px)] -translate-y-1/2 bg-lime-500 rounded-[24px] px-3 py-1.5 flex items-center gap-1 shadow-sm z-30 whitespace-nowrap">
-                      <Check className="w-4 h-4 text-white stroke-[3px]" />
-                      <span className="text-white font-bold text-sm">추첨권 1매</span>
-                    </div>
-                  )}
-                  <div className="absolute inset-0 rounded-[20px] bg-white pointer-events-none z-0"></div>
-                  <div className="absolute inset-0 rounded-[20px] border-[0.75px] border-black/10 pointer-events-none z-10"></div>
-                  <div className="relative z-10 flex flex-col items-center justify-center">
-                    {isCompleted && (
-                      <div className="w-32 h-32 mb-2">
-                        <Lottie animationData={ideaAnimation} loop={true} />
-                      </div>
-                    )}
-                    <p className="text-3xl font-bold text-rose-500 my-1">{secretWordList[0].title}</p>
-
-
-                    <div className='mb-4 mt-4 flex flex-col items-center gap-2'>
-                      {!isCompleted ? (
-                        <>
-                          <p className="text-sm text-rose-500 py-[4px] px-[8px] bg-rose-500/10 rounded-[8px] w-fit">
-                            "종이로 되어있고 특별한 날 사용해요"
-                          </p>
-                          <p className="text-sm text-rose-500 py-[4px] px-[8px] bg-rose-500/10 rounded-[8px] w-fit">
-                            "오늘도 이걸 하고 왔어요"
-                          </p>
-                        </>
-                      ) : (
-                        secretWordList[0].content.map((item, i) => {
-                          return (
-                            <p key={i} className="text-sm text-rose-500 py-[4px] px-[8px] bg-rose-500/10 rounded-[8px] w-fit">
-                              {item}
-                            </p>
-                          )
-                        })
-                      )}
-                    </div>
-
-                    {!isCompleted && (
-                      <p className="text-sm text-rose-800 mt-2 mb-6">
-                        이 단어를 직접 언급하지 말고, 다른 방식으로 설명하여 같은 단어를 가진 사람을 찾아보세요!
-                      </p>
-                    )}
-
-                    <div className="p-4 flex flex-col items-center">
-                      <QRCode value={secretWord || 'wedding_quest_qr_standin'} size={150} fgColor="#831843" />
-                      <p className="text-xs text-rose-500 font-medium mt-3">나의 고유 QR 코드</p>
-                    </div>
-                  </div>
-                </div>
-                <div className='h-4' />
-
-                {/* Live QR Scanner using yudiel/react-qr-scanner */}
-                {!isCompleted && (
-                  showQrScanner ? (
-                    <div className="fixed inset-0 z-50 bg-black flex flex-col">
-                      {/* Scanner overlay */}
-                      <div className="flex-1 relative w-full h-full flex items-center justify-center">
-                        <Scanner
-                          onScan={(result) => {
-
-                            if (result && result.length > 0) {
-                              // alert(JSON.stringify(result, null, 2))
-                              // result[0].rawValue
-                              handleQrScan();
+                                if (
+                                  !isCompleted &&
+                                  !completedMissions.includes(missionId)
+                                ) {
+                                  completeMissionWithoutRedirect();
+                                }
+                              }, 500);
                             }
                           }}
-                          onError={(error: any) => console.log('QR Scan Error:', error?.message)}
-                          constraints={{ facingMode: 'environment' }}
-                        />
-                        <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-10 bg-gradient-to-b from-black/50 to-transparent">
-                          <button onClick={() => setShowQrScanner(false)} className="bg-black/50 p-2 rounded-full text-white">
-                            <ArrowLeft className="w-6 h-6" />
-                          </button>
-                          <p className="text-white font-medium">QR 코드를 스캔하세요</p>
-                          <div className="w-10"></div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)' }}>
-                      <div className="max-w-md mx-auto  w-full pointer-events-auto">
-                        <button
-                          onClick={() => setShowQrScanner(true)}
-                          className="w-full bg-rose-400 text-white font-bold py-[16px] rounded-[16px] shadow-[0_4px_12px_rgba(247,50,149,0.3)] flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-[0.98] transition-transform border-[0.75px] border-transparent"
+                          disabled={
+                            selectedSeatOption === null || showSeatResult
+                          }
+                          className="w-full bg-lime-500 text-white font-bold py-[16px] rounded-[16px] shadow-[0_4px_12px_rgba(132,204,22,0.3)] disabled:shadow-none flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-[0.98] transition-transform disabled:opacity-100 disabled:bg-none disabled:bg-[#F4F4F5] disabled:text-[#37383C]/28 disabled:cursor-not-allowed border-[0.75px] border-transparent"
                         >
-                          <QrCode className="w-5 h-5" />
-                          상대방 QR 인식하기
+                          정답 제출
                         </button>
                       </div>
                     </div>
-                  )
-                )}
+                  )}
+                </div>
+              ) : (
+                <div className="text-center flex justify-center w-full mb-8">
+                  <div className="transition-opacity duration-1000 opacity-100 flex flex-col items-center">
+                    <div className="w-56 h-56 -mb-[53px] pointer-events-none z-0 relative">
+                      <Lottie animationData={seatAnimation} loop={true} />
+                    </div>
+                    <div
+                      className="bg-fuchsia-300 border-[0.75px] border-black/10 rounded-[20px] px-6 py-[44px] text-center w-full flex-col flex relative z-10 m-0"
+                      style={{
+                        boxShadow:
+                          "0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
+                      }}
+                    >
+                      <p className="text-4xl font-bold text-[#000000] my-0 flex justify-center items-baseline gap-1">
+                        15<span className="text-xl">번</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
+          {isCompleted && missionId === 6 && (
+            <div className="text-center mb-2 pb-12 ">
+              <h2 className="text-xl font-bold text-gray-800 mb-2 mt-2">
+                웨딩 코스 요리 메뉴
+              </h2>
+              <p className="text-gray-600 mb-6 font-medium text-sm">
+                오늘 제공될 점심 식사 메뉴입니다
+              </p>
+
+              <div className="bg-gradient-to-br from-[#FFF0F5] to-white rounded-[16px] p-6 text-gray-800 space-y-7 font-medium border border-[#FFE2EA] shadow-inner relative">
+                <div className="absolute top-0 right-0 translate-x-[calc(40%-24px)] -translate-y-1/2 bg-lime-500 rounded-[24px] px-3 py-1.5 flex items-center gap-1 shadow-md z-30 whitespace-nowrap">
+                  <Check className="w-4 h-4 text-white stroke-[3px]" />
+                  <span className="text-white font-bold text-sm">
+                    추첨권 1매
+                  </span>
+                </div>
+                <div className="flex flex-col items-center gap-1.5">
+                  <span className="text-3xl mb-1">🥖</span>{" "}
+                  <div className="text-center">
+                    <p className="text-[15px] font-bold">식전 빵</p>
+                    <p className="text-xs text-gray-500 mt-0.5 font-normal">
+                      Fresh Baked Bread
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-1.5">
+                  <span className="text-3xl mb-1">🥗</span>{" "}
+                  <div className="text-center">
+                    <p className="text-[15px] font-bold">훈제 연어 샐러드</p>
+                    <p className="text-xs text-gray-500 mt-0.5 font-normal">
+                      Smoked Salmon Salad
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-1.5">
+                  <span className="text-3xl mb-1">🥣</span>{" "}
+                  <div className="text-center">
+                    <p className="text-[15px] font-bold">양송이 크림 수프</p>
+                    <p className="text-xs text-gray-500 mt-0.5 font-normal">
+                      Mushroom Cream Soup
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-1.5">
+                  <span className="text-3xl mb-1">🥩</span>{" "}
+                  <div className="text-center">
+                    <p className="text-[15px] font-bold">안심 스테이크</p>
+                    <p className="text-xs text-gray-500 mt-0.5 font-normal">
+                      Tenderloin Steak
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-1.5">
+                  <span className="text-3xl mb-1">🍰</span>{" "}
+                  <div className="text-center">
+                    <p className="text-[15px] font-bold">티라미수 케이크</p>
+                    <p className="text-xs text-gray-500 mt-0.5 font-normal">
+                      Tiramisu Cake
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-1.5">
+                  <span className="text-3xl mb-1">☕</span>{" "}
+                  <div className="text-center">
+                    <p className="text-[15px] font-bold">커피 또는 홍차</p>
+                    <p className="text-xs text-gray-500 mt-0.5 font-normal">
+                      Coffee or Tea
+                    </p>
+                  </div>
+                </div>
               </div>
-            )
-          }
+            </div>
+          )}
+
+          {/* Photo Upload Missions */}
+          {mission.type === "photo" && (
+            <div className="space-y-4">
+              {!isCompleted && !uploadedImage && mission.hint && (
+                <div className="mb-4">
+                  <button
+                    onClick={() => setShowHint(!showHint)}
+                    className="flex justify-center items-center gap-1 text-rose-400 font-medium hover:text-rose-500 w-full"
+                  >
+                    힌트
+                    <HelpCircle className="w-5 h-5" />
+                  </button>
+                  {showHint && (
+                    <div className="mt-3 bg-rose-50 border-[0.75px] border-rose-200 rounded-xl p-4 mb-[80px]">
+                      <p className="text-rose-700">{mission.hint}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {uploadedImage ? (
+                <div className="space-y-4">
+                  <div className="relative w-full h-auto">
+                    <img
+                      src={uploadedImage}
+                      alt="Uploaded"
+                      className="w-full rounded-xl object-contain max-h-[60vh]"
+                    />
+                    {isCompleted && (
+                      <div className="absolute top-0 right-0 translate-x-[calc(40%-24px)] -translate-y-1/2 bg-lime-500 rounded-[24px] px-3 py-1.5 flex items-center gap-1 shadow-md z-30 whitespace-nowrap">
+                        <Check className="w-4 h-4 text-white stroke-[3px]" />
+                        <span className="text-white font-bold text-sm">
+                          추첨권 1매
+                        </span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 rounded-xl border-[0.75px] border-black/15 pointer-events-none z-10"></div>
+                  </div>
+
+                  <div className="h-12" />
+
+                  {!isCompleted && (
+                    <div
+                      className="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none"
+                      style={{
+                        background:
+                          "linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)",
+                      }}
+                    >
+                      <div className="max-w-md mx-auto flex gap-3 w-full  pointer-events-auto">
+                        <button
+                          onClick={() => setUploadedImage(null)}
+                          className="flex-1 px-[16px] py-[16px] bg-[#ffffff] text-rose-400 rounded-[16px] font-bold hover:bg-pink-50 hover:-translate-y-1 active:scale-[0.98] transition-all border-[1px] border-rose-300 shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
+                        >
+                          다시 촬영
+                        </button>
+                        <button
+                          onClick={completeMission}
+                          disabled={isUploading}
+                          className="flex-[2] py-[16px] bg-rose-400 text-white rounded-[16px] font-bold shadow-[0_4px_12px_rgba(247,50,149,0.3)] hover:-translate-y-1 active:scale-[0.98] transition-transform border-[0.75px] border-transparent disabled:opacity-50"
+                        >
+                          {isUploading ? "업로드 중..." : "미션 완료"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : !isCompleted ? (
+                <div
+                  className="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none"
+                  style={{
+                    background:
+                      "linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)",
+                  }}
+                >
+                  {/* <div className="fixed bottom-0 left-0 right-0 pt-24 pb-8 z-50 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)' }}> */}
+                  <div className="max-w-md mx-auto w-full pointer-events-auto">
+                    <label className="block w-full cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                      <div className="w-full bg-rose-400 text-white font-bold py-[16px] rounded-[16px] shadow-[0_4px_12px_rgba(247,50,149,0.3)] flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-[0.98] transition-all cursor-pointer">
+                        <Camera className="w-6 h-6" />
+                        사진 촬영하기
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {/* QR Mission */}
+          {mission.type === "qr" && (
+            <div className="space-y-4 ">
+              <div
+                className="rounded-[20px] p-6 text-center mb-[48px] relative"
+                style={{
+                  boxShadow:
+                    "0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
+                }}
+              >
+                {isCompleted && (
+                  <div className="absolute top-0 right-0 translate-x-[calc(40%-24px)] -translate-y-1/2 bg-lime-500 rounded-[24px] px-3 py-1.5 flex items-center gap-1 shadow-sm z-30 whitespace-nowrap">
+                    <Check className="w-4 h-4 text-white stroke-[3px]" />
+                    <span className="text-white font-bold text-sm">
+                      추첨권 1매
+                    </span>
+                  </div>
+                )}
+                <div className="absolute inset-0 rounded-[20px] bg-white pointer-events-none z-0"></div>
+                <div className="absolute inset-0 rounded-[20px] border-[0.75px] border-black/10 pointer-events-none z-10"></div>
+                <div className="relative z-10 flex flex-col items-center justify-center">
+                  {isCompleted && (
+                    <div className="w-32 h-32 mb-2">
+                      <Lottie animationData={ideaAnimation} loop={true} />
+                    </div>
+                  )}
+                  <p className="text-3xl font-bold text-rose-500 my-1">
+                    {secretWordList[0].title}
+                  </p>
+
+                  <div className="mb-4 mt-4 flex flex-col items-center gap-2">
+                    {!isCompleted ? (
+                      <>
+                        <p className="text-sm text-rose-500 py-[4px] px-[8px] bg-rose-500/10 rounded-[8px] w-fit">
+                          "종이로 되어있고 특별한 날 사용해요"
+                        </p>
+                        <p className="text-sm text-rose-500 py-[4px] px-[8px] bg-rose-500/10 rounded-[8px] w-fit">
+                          "오늘도 이걸 하고 왔어요"
+                        </p>
+                      </>
+                    ) : (
+                      secretWordList[0].content.map((item, i) => {
+                        return (
+                          <p
+                            key={i}
+                            className="text-sm text-rose-500 py-[4px] px-[8px] bg-rose-500/10 rounded-[8px] w-fit"
+                          >
+                            {item}
+                          </p>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {!isCompleted && (
+                    <p className="text-sm text-rose-800 mt-2 mb-6">
+                      이 단어를 직접 언급하지 말고, 다른 방식으로 설명하여 같은
+                      단어를 가진 사람을 찾아보세요!
+                    </p>
+                  )}
+
+                  <div className="p-4 flex flex-col items-center">
+                    <QRCode
+                      value={secretWord || "wedding_quest_qr_standin"}
+                      size={150}
+                      fgColor="#831843"
+                    />
+                    <p className="text-xs text-rose-500 font-medium mt-3">
+                      나의 고유 QR 코드
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="h-4" />
+
+              {/* Live QR Scanner using yudiel/react-qr-scanner */}
+              {!isCompleted &&
+                (showQrScanner ? (
+                  <div className="fixed inset-0 z-50 bg-black flex flex-col">
+                    {/* Scanner overlay */}
+                    <div className="flex-1 relative w-full h-full flex items-center justify-center">
+                      <Scanner
+                        onScan={(result) => {
+                          if (result && result.length > 0) {
+                            // alert(JSON.stringify(result, null, 2))
+                            // result[0].rawValue
+                            handleQrScan();
+                          }
+                        }}
+                        onError={(error: any) =>
+                          console.log("QR Scan Error:", error?.message)
+                        }
+                        constraints={{ facingMode: "environment" }}
+                      />
+                      <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-10 bg-gradient-to-b from-black/50 to-transparent">
+                        <button
+                          onClick={() => setShowQrScanner(false)}
+                          className="bg-black/50 p-2 rounded-full text-white"
+                        >
+                          <ArrowLeft className="w-6 h-6" />
+                        </button>
+                        <p className="text-white font-medium">
+                          QR 코드를 스캔하세요
+                        </p>
+                        <div className="w-10"></div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none"
+                    style={{
+                      background:
+                        "linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)",
+                    }}
+                  >
+                    <div className="max-w-md mx-auto  w-full pointer-events-auto">
+                      <button
+                        onClick={() => setShowQrScanner(true)}
+                        className="w-full bg-rose-400 text-white font-bold py-[16px] rounded-[16px] shadow-[0_4px_12px_rgba(247,50,149,0.3)] flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-[0.98] transition-transform border-[0.75px] border-transparent"
+                      >
+                        <QrCode className="w-5 h-5" />
+                        상대방 QR 인식하기
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
 
           {/* Quiz Mission */}
-          {mission.type === 'quiz' && !isCompleted && (
+          {mission.type === "quiz" && !isCompleted && (
             <div className="space-y-4">
               {mission.quizOptions?.map((option, index) => (
                 <button
@@ -652,27 +885,31 @@ export default function MissionDetail() {
                   disabled={quizSubmitted}
                   className={`
                     w-full p-4 rounded-[20px] border-[0.75px] text-left transition-all
-                    ${quizSubmitted && index === mission.quizAnswer
-                      ? 'border-lime-500 bg-lime-50'
-                      : quizSubmitted && index === selectedQuiz
-                        ? 'border-red-500 bg-red-50'
-                        : selectedQuiz === index
-                          ? 'border-lime-500 bg-lime-50'
-                          : 'border-[#EBEBF0] hover:border-lime-300'
+                    ${
+                      quizSubmitted && index === mission.quizAnswer
+                        ? "border-lime-500 bg-lime-50"
+                        : quizSubmitted && index === selectedQuiz
+                          ? "border-red-500 bg-red-50"
+                          : selectedQuiz === index
+                            ? "border-lime-500 bg-lime-50"
+                            : "border-[#EBEBF0] hover:border-lime-300"
                     }
-                    ${quizSubmitted ? 'cursor-not-allowed' : 'cursor-pointer'}
+                    ${quizSubmitted ? "cursor-not-allowed" : "cursor-pointer"}
                   `}
                 >
                   <div className="flex items-center gap-3 justify-center ">
-                    <span className={`
+                    <span
+                      className={`
                       font-medium
-                      ${quizSubmitted && index === mission.quizAnswer
-                        ? 'text-lime-700'
-                        : quizSubmitted && index === selectedQuiz
-                          ? 'text-red-700'
-                          : 'text-gray-700'
+                      ${
+                        quizSubmitted && index === mission.quizAnswer
+                          ? "text-lime-700"
+                          : quizSubmitted && index === selectedQuiz
+                            ? "text-red-700"
+                            : "text-gray-700"
                       }
-                    `}>
+                    `}
+                    >
                       {option}
                     </span>
                   </div>
@@ -680,7 +917,13 @@ export default function MissionDetail() {
               ))}
 
               {!quizSubmitted && (
-                <div className="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)' }}>
+                <div
+                  className="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none"
+                  style={{
+                    background:
+                      "linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)",
+                  }}
+                >
                   <div className="max-w-md mx-auto  w-full pointer-events-auto">
                     <button
                       onClick={handleQuizSubmit}
@@ -696,7 +939,9 @@ export default function MissionDetail() {
               {/* Removing the intermediate success state entirely */}
               {quizSubmitted && selectedQuiz !== mission.quizAnswer && (
                 <div className="bg-red-50 border-[0.75px] border-red-300 rounded-[20px] p-4 text-center">
-                  <p className="text-red-700 font-medium">아쉽지만 틀렸습니다. 다시 시도해보세요!</p>
+                  <p className="text-red-700 font-medium">
+                    아쉽지만 틀렸습니다. 다시 시도해보세요!
+                  </p>
                   <button
                     onClick={() => {
                       setQuizSubmitted(false);
@@ -713,25 +958,27 @@ export default function MissionDetail() {
         </div>
       </div>
 
-      {
-        isCompleted && (
-          <div className="fixed bottom-0 left-0 right-0 p-6 z-50 pointer-events-none bg-gradient-to-t from-white from-50% via-white/80 to-transparent" style={{ background: 'linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)' }}>
-            <div className="max-w-md mx-auto pointer-events-auto">
-              <button
-                onClick={() => navigate('/')}
-                className="w-full bg-[#ffffff] text-[#E83E7A] border border-rose-200 font-bold py-[16px] rounded-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-[0.98] transition-transform"
-              >
-                홈으로 가기
-              </button>
-            </div>
+      {isCompleted && (
+        <div
+          className="fixed bottom-0 left-0 right-0 p-6 z-50 pointer-events-none bg-gradient-to-t from-white from-50% via-white/80 to-transparent"
+          style={{
+            background:
+              "linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)",
+          }}
+        >
+          <div className="max-w-md mx-auto pointer-events-auto">
+            <button
+              onClick={() => navigate("/")}
+              className="w-full bg-[#ffffff] text-[#E83E7A] border border-rose-200 font-bold py-[16px] rounded-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-[0.98] transition-transform"
+            >
+              홈으로 가기
+            </button>
           </div>
-        )
-      }
-
+        </div>
+      )}
     </div>
-  )
+  );
 }
-
 
 //         </div >
 //       </div >
