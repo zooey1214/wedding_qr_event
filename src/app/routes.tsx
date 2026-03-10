@@ -4,6 +4,7 @@ import MissionDetail from "./pages/MissionDetail";
 import Guestbook from "./pages/Guestbook";
 import BgmRequest from "./pages/BgmRequest";
 import Tickets from "./pages/Tickets";
+import Admin from "./pages/Admin";
 
 export const router = createBrowserRouter([
   {
@@ -25,5 +26,9 @@ export const router = createBrowserRouter([
   {
     path: "/tickets",
     Component: Tickets,
+  },
+  {
+    path: "/admin",
+    Component: Admin,
   },
 ]);
