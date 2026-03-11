@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { ChevronRight, Ticket, BookHeart, Music } from 'lucide-react';
 import { MISSIONS } from '../types/mission';
 import { Icon1 } from '../../components/icons/Icon1';
@@ -11,40 +11,102 @@ import { Icon6 } from '../../components/icons/Icon6';
 import Lottie from 'lottie-react';
 import { secretWordList } from '../../assets/secretWords';
 
+import { supabase } from '../../lib/supabase';
+
 export default function Home() {
+  const [searchParams] = useSearchParams();
+  const urlGuestId = searchParams.get("guestId");
   const [completedMissions, setCompletedMissions] = useState<number[]>([]);
   const [tickets, setTickets] = useState(0);
-  const [secretWord, setSecretWord] = useState('');
+  const [guestName, setGuestName] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isValidGuest, setIsValidGuest] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null); // Ref 생성
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Load from localStorage
-    const saved = localStorage.getItem('missionProgress');
-    if (saved) {
-      const data = JSON.parse(saved);
-      setCompletedMissions(data.completedMissions || []);
-      setTickets(data.tickets || 0);
-      setSecretWord(data.secretWord || generateSecretWord());
-    } else {
-      const word = generateSecretWord();
-      setSecretWord(word);
-      localStorage.setItem('missionProgress', JSON.stringify({
-        completedMissions: [],
-        tickets: 0,
-        secretWord: word
-      }));
+    async function loadGuestData() {
+      // 1. Check for valid ID from URL or localStorage
+      const activeGuestId = urlGuestId || localStorage.getItem("guestId");
+
+      if (!activeGuestId) {
+        setIsLoading(false);
+        setIsValidGuest(false);
+        return;
+      }
+      
+      // Save it temporarily so other pages can still use the localstorage if they didn't migrate yet
+      if (urlGuestId) {
+        localStorage.setItem("guestId", urlGuestId);
+      }
+
+      try {
+        // 2. Verify guest existence
+        const { data: guestData, error: guestError } = await supabase
+          .from("guests")
+          .select("name")
+          .eq("id", activeGuestId)
+          .single();
+
+        if (guestError || !guestData) {
+          setIsLoading(false);
+          setIsValidGuest(false);
+          return;
+        }
+
+        setGuestName(guestData.name || "게스트");
+        setIsValidGuest(true);
+
+        // 3. Load completed missions and tickets length
+        const [missionsRes, ticketsRes] = await Promise.all([
+          supabase
+            .from("guest_missions")
+            .select("mission_id")
+            .eq("guest_id", activeGuestId)
+            .eq("is_completed", true),
+          supabase
+            .from("lottery_tickets")
+            .select("id", { count: 'exact' })
+            .eq("guest_id", activeGuestId)
+        ]);
+
+        if (missionsRes.data) {
+          setCompletedMissions(missionsRes.data.map((m: any) => m.mission_id));
+        }
+        if (ticketsRes.count !== null) {
+          setTickets(ticketsRes.count);
+        }
+      } catch (err) {
+        console.error("Error loading guest data:", err);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, []);
 
+    loadGuestData();
+  }, [urlGuestId]);
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FFF8F9]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-rose-200 border-t-rose-400 rounded-full animate-spin"></div>
+          <p className="text-rose-400 font-medium text-sm">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const generateSecretWord = () => {
-
-    const words = ['분리수거 바구니', '설거지', '등기부등본', '리모컨', '축의금 봉투', '비상금'];
-    secretWordList
-    return words[Math.floor(Math.random() * words.length)];
-  };
+  if (!isValidGuest) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FFF8F9]">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <h1 className="text-3xl font-bold text-gray-800">404</h1>
+          <p className="text-gray-600 font-medium">유효하지 않은 접근이거나<br/>없는 하객 정보입니다.</p>
+        </div>
+      </div>
+    );
+  }
 
 
   const completionRate = Math.round((completedMissions.length / MISSIONS.length) * 100);
@@ -60,7 +122,7 @@ export default function Home() {
       <div className="flex flex-col w-full bg-transparent">
         <div className="flex flex-1  flex-col self-start w-[100%] px-[16px] py-8 pt-[80px] text-left">
           <p className="text-[26px] font-bold text-[#000000] whitespace-pre-line leading-snug">
-            안녕하세요, 김철수님{'\n'}
+            안녕하세요, {guestName}님{'\n'}
             경품 미션에 도전해보세요 :)
           </p>
           <p className="mt-2 font-medium text-lg text-gray-500">완료한 스탬프만큼 추첨권을 드려요</p>
