@@ -29,11 +29,10 @@ export default function MissionDetail() {
   const missionId = parseInt(id || "0");
   const mission = MISSIONS.find((m) => m.id === missionId);
 
+  const guestId = localStorage.getItem("guestId"); // Temporarily using local storage to identify the guest
   const [completedMissions, setCompletedMissions] = useState<number[]>([]);
-  const [tickets, setTickets] = useState(0);
-  const [missionImages, setMissionImages] = useState<Record<number, string>>(
-    {},
-  );
+  const [tickets, setTickets] = useState(0); // Optional: if you want to keep showing ticket count
+  const [missionImages, setMissionImages] = useState<Record<number, string>>({});
   const [showHint, setShowHint] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -41,6 +40,9 @@ export default function MissionDetail() {
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [showQrScanner, setShowQrScanner] = useState(false);
   const [secretWord, setSecretWord] = useState("");
+  const [secretWordTitle, setSecretWordTitle] = useState("");
+  const [guestName, setGuestName] = useState("게스트");
+  const [guestTableNo, setGuestTableNo] = useState("");
 
   // Seats animation states
   const [hasVisitedSeatCheck, setHasVisitedSeatCheck] = useState(() => {
@@ -67,27 +69,83 @@ export default function MissionDetail() {
     null,
   );
   const [seatQuizSubmitted, setSeatQuizSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("missionProgress");
-    if (saved) {
-      const data = JSON.parse(saved);
-      setCompletedMissions(data.completedMissions || []);
-      setTickets(data.tickets || 0);
-      setSecretWord(data.secretWord || "");
-      setMissionImages(data.missionImages || {});
-      setHasVisitedSeatCheck(data.hasVisitedSeatCheck || false);
-
-      if (data.missionImages && data.missionImages[missionId]) {
-        setUploadedImage(data.missionImages[missionId]);
-      }
+  const loadMissionData = async () => {
+    if (!guestId) {
+      setIsLoading(false);
+      return;
     }
-  }, [missionId]);
 
-  // Handle setup for the first mission (Seat Check)
+    try {
+      // 1. Fetch guest info (Name, Table No, Secret Word) and 2. Fetch completed missions info
+      const [guestRes, missionsRes] = await Promise.all([
+        supabase
+          .from("guests")
+          .select("name, table_no, secret_words(title, content)")
+          .eq("id", guestId)
+          .single(),
+        supabase
+          .from("guest_missions")
+          .select("mission_id, is_completed, mission_image")
+          .eq("guest_id", guestId)
+      ]);
+
+      if (guestRes.data) {
+        setGuestName(guestRes.data.name || "게스트");
+        setGuestTableNo(guestRes.data.table_no || "");
+        
+        if (guestRes.data.secret_words) {
+          const secretWordData = Array.isArray(guestRes.data.secret_words)
+            ? guestRes.data.secret_words[0]
+            : guestRes.data.secret_words;
+
+          if (secretWordData) {
+            setSecretWordTitle(secretWordData.title);
+            // Assuming content is an array
+            setSecretWord((secretWordData.content as any)?.join(", ") || "");
+          }
+        }
+      }
+
+      if (missionsRes.data) {
+        const completedIds: number[] = [];
+        const images: Record<number, string> = {};
+        
+        missionsRes.data.forEach((m) => {
+          if (m.is_completed) completedIds.push(m.mission_id);
+          if (m.mission_image) images[m.mission_id] = m.mission_image;
+        });
+
+        setCompletedMissions(completedIds);
+        setMissionImages(images);
+        
+        // Seat Mission (Mission 1) UI specific state logic based on completion
+        if (missionId === 1 && completedIds.includes(1)) {
+          setHasVisitedSeatCheck(true);
+          setShowSeatResult(true);
+          setSeatCheckText(`아 ${guestRes.data?.name || "게스트"}님이요~\n잠시만요 자리가…`);
+        }
+        
+        if (images[missionId]) {
+          setUploadedImage(images[missionId]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load user missions", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (mission?.id === 1) {
-      const guestName = localStorage.getItem("guestName") || "게스트";
+    loadMissionData();
+  }, [missionId, guestId]);
+
+  // Handle setup for the first mission (Seat Check) options
+  useEffect(() => {
+    if (mission?.id === 1 && guestName !== "게스트") {
       // Shuffle names (for layout only; keeping simple)
       const options = [
         "김칠수입니다",
@@ -98,13 +156,19 @@ export default function MissionDetail() {
       const actualNameIdx = Math.floor(Math.random() * 4);
       options[actualNameIdx] = `${guestName}입니다`;
       setFakeNames(options);
-
-      if (hasVisitedSeatCheck) {
-        setShowSeatResult(true);
-        setSeatCheckText(`아 ${guestName}님이요~\n잠시만요 자리가…`);
-      }
     }
-  }, [mission, hasVisitedSeatCheck]);
+  }, [mission, guestName]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FFF8F9]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-rose-200 border-t-rose-400 rounded-full animate-spin"></div>
+          <p className="text-rose-400 font-medium text-sm">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!mission) {
     return (
@@ -161,59 +225,68 @@ export default function MissionDetail() {
     }
   };
 
-  const completeMission = () => {
-    if (!isCompleted) {
-      const newCompletedMissions = [...completedMissions, missionId];
-      const newTickets = tickets + 1;
-      const newMissionImages = { ...missionImages };
+  const checkAllMissionsComplete = async () => {
+    if (!guestId) return;
+    
+    const { data } = await supabase
+      .from("guest_missions")
+      .select("id")
+      .eq("guest_id", guestId)
+      .eq("is_completed", true);
 
-      if (uploadedImage) {
-        newMissionImages[missionId] = uploadedImage;
-      }
-
-      const saved = localStorage.getItem("missionProgress");
-      const savedData = saved ? JSON.parse(saved) : {};
-
-      const data = {
-        ...savedData,
-        completedMissions: newCompletedMissions,
-        tickets: newTickets,
-        secretWord,
-        missionImages: newMissionImages,
-      };
-
-      localStorage.setItem("missionProgress", JSON.stringify(data));
-      setCompletedMissions(newCompletedMissions);
-      setTickets(newTickets);
-      setMissionImages(newMissionImages);
+    if (data && data.length >= 6) {
+      await supabase
+        .from("guests")
+        .update({ mission_complete_at: new Date().toISOString() })
+        .eq("id", guestId)
+        .is("mission_complete_at", null);
     }
   };
 
-  const completeMissionWithoutRedirect = () => {
-    if (!isCompleted) {
-      const newCompletedMissions = [...completedMissions, missionId];
-      const newTickets = tickets + 1;
-      const newMissionImages = { ...missionImages };
+  const completeMission = async () => {
+    if (!isCompleted && guestId) {
+      try {
+        const payload: any = { is_completed: true, completed_at: new Date().toISOString() };
+        if (uploadedImage) payload.mission_image = uploadedImage;
 
-      if (uploadedImage) {
-        newMissionImages[missionId] = uploadedImage;
+        await supabase
+          .from("guest_missions")
+          .update(payload)
+          .eq("guest_id", guestId)
+          .eq("mission_id", missionId);
+
+        // Issue lottery ticket
+        await supabase.from("lottery_tickets").insert([
+          { guest_id: guestId, mission_id: missionId }
+        ]);
+
+        await checkAllMissionsComplete();
+        await loadMissionData();
+      } catch (err) {
+        console.error("Error completing mission", err);
       }
+    }
+  };
 
-      const saved = localStorage.getItem("missionProgress");
-      const savedData = saved ? JSON.parse(saved) : {};
+  const completeMissionWithoutRedirect = async () => {
+    if (!isCompleted && guestId) {
+      try {
+        await supabase
+          .from("guest_missions")
+          .update({ is_completed: true, completed_at: new Date().toISOString() })
+          .eq("guest_id", guestId)
+          .eq("mission_id", missionId);
 
-      const data = {
-        ...savedData,
-        completedMissions: newCompletedMissions,
-        tickets: newTickets,
-        secretWord,
-        missionImages: newMissionImages,
-      };
+        // Issue lottery ticket
+        await supabase.from("lottery_tickets").insert([
+          { guest_id: guestId, mission_id: missionId }
+        ]);
 
-      localStorage.setItem("missionProgress", JSON.stringify(data));
-      setCompletedMissions(newCompletedMissions);
-      setTickets(newTickets);
-      setMissionImages(newMissionImages);
+        await checkAllMissionsComplete();
+        await loadMissionData();
+      } catch (err) {
+        console.error("Error completing mission", err);
+      }
     }
   };
 
@@ -226,13 +299,12 @@ export default function MissionDetail() {
     }
   };
 
-  const handleQrScan = () => {
+  const handleQrScan = async () => {
     // Simulate QR scan
     // return
     setShowQrScanner(false);
-    completeMission();
+    await completeMission();
   };
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="min-h-screen bg-white relative" ref={scrollRef}>
@@ -386,7 +458,7 @@ export default function MissionDetail() {
         <div className={`max-w-md mx-auto px-6 `}>
           <div className="text-center">
             {mission.id === 1 ? (
-              <h1 className="text-[26px] font-bold text-[#000000] mb-[2px] whitespace-pre-line" >
+              <h1 className="text-[26px] font-bold text-[#000000] mb-[2px] whitespace-pre-line">
                 {seatCheckText}
               </h1>
             ) : (
@@ -434,8 +506,6 @@ export default function MissionDetail() {
               {!hasVisitedSeatCheck ? (
                 <div className="space-y-4 relative w-full h-full pb-16">
                   {fakeNames.map((option, index) => {
-                    const guestName =
-                      localStorage.getItem("guestName") || "게스트";
                     const isCorrect = option === `${guestName}입니다`;
 
                     return (
@@ -447,15 +517,16 @@ export default function MissionDetail() {
                         disabled={seatQuizSubmitted || showSeatResult}
                         className={`
                             w-full p-4 rounded-[20px] border-[0.75px] text-left transition-all
-                            ${seatQuizSubmitted && isCorrect
-                            ? "border-lime-500 bg-lime-50"
-                            : seatQuizSubmitted &&
-                              index === selectedSeatOption
-                              ? "border-red-500 bg-red-50"
-                              : selectedSeatOption === index
+                            ${
+                              seatQuizSubmitted && isCorrect
                                 ? "border-lime-500 bg-lime-50"
-                                : "border-[#EBEBF0] hover:border-lime-300"
-                          }
+                                : seatQuizSubmitted &&
+                                    index === selectedSeatOption
+                                  ? "border-red-500 bg-red-50"
+                                  : selectedSeatOption === index
+                                    ? "border-lime-500 bg-lime-50"
+                                    : "border-[#EBEBF0] hover:border-lime-300"
+                            }
                             ${seatQuizSubmitted ? "cursor-not-allowed" : "cursor-pointer"}
                           `}
                       >
@@ -463,12 +534,13 @@ export default function MissionDetail() {
                           <span
                             className={`
                               font-medium
-                              ${seatQuizSubmitted && isCorrect
-                                ? "text-lime-700"
-                                : seatQuizSubmitted &&
-                                  index === selectedSeatOption
-                                  ? "text-red-700"
-                                  : "text-gray-700"
+                              ${
+                                seatQuizSubmitted && isCorrect
+                                  ? "text-lime-700"
+                                  : seatQuizSubmitted &&
+                                      index === selectedSeatOption
+                                    ? "text-red-700"
+                                    : "text-gray-700"
                               }
                             `}
                           >
@@ -481,8 +553,7 @@ export default function MissionDetail() {
 
                   {seatQuizSubmitted &&
                     selectedSeatOption !== null &&
-                    fakeNames[selectedSeatOption] !==
-                    `${localStorage.getItem("guestName") || "게스트"}입니다` && (
+                    fakeNames[selectedSeatOption] !== `${guestName}입니다` && (
                       <div className="bg-red-50 border-[0.75px] border-red-300 rounded-[20px] p-4 text-center mt-2">
                         <p className="text-red-700 font-medium">
                           아쉽지만 틀렸습니다. 다시 시도해보세요!
@@ -510,16 +581,13 @@ export default function MissionDetail() {
                       <div className="max-w-md mx-auto w-full pointer-events-auto">
                         <button
                           onClick={() => {
-                            const guestName =
-                              localStorage.getItem("guestName") || "게스트";
                             const isCorrect =
                               selectedSeatOption !== null &&
-                              fakeNames[selectedSeatOption] ===
-                              `${guestName}입니다`;
+                              fakeNames[selectedSeatOption] === `${guestName}입니다`;
                             setSeatQuizSubmitted(true);
 
                             if (isCorrect) {
-                              setTimeout(() => {
+                              setTimeout(async () => {
                                 const saved =
                                   localStorage.getItem("missionProgress");
                                 const data = saved ? JSON.parse(saved) : {};
@@ -534,7 +602,7 @@ export default function MissionDetail() {
                                   !isCompleted &&
                                   !completedMissions.includes(missionId)
                                 ) {
-                                  completeMissionWithoutRedirect();
+                                  await completeMissionWithoutRedirect();
                                 }
                               }, 500);
                             }
@@ -563,11 +631,17 @@ export default function MissionDetail() {
                           "0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
                       }}
                     >
-                      <p className="text-4xl font-bold text-[#000000] my-0 flex justify-center items-baseline gap-1" style={{
-                        fontFamily: "CuteLotte",
-                        fontWeight: 400
-                      }}>
-                        15<span className="text-xl">번</span>
+                      <p
+                        className="text-4xl font-bold text-[#000000] my-0 flex justify-center items-baseline gap-1"
+                        style={{
+                          fontFamily: "CuteLotte",
+                          fontWeight: 400,
+                        }}
+                      >
+                        {guestTableNo.replace(/[^0-9]/g, "") || "15"}
+                        <span className="text-xl">
+                          {guestTableNo.replace(/[0-9]/g, "") || "번"}
+                        </span>
                       </p>
                     </div>
                   </div>
@@ -780,23 +854,13 @@ export default function MissionDetail() {
                     {!isCompleted ? (
                       <>
                         <p className="text-sm text-rose-500 py-[4px] px-[8px] bg-rose-500/10 rounded-[8px] w-fit">
-                          "특별한 날 사용하는 종이예요"
-                        </p>
-                        <p className="text-sm text-rose-500 py-[4px] px-[8px] bg-rose-500/10 rounded-[8px] w-fit">
-                          "요오늘도 이걸 하고 왔어"
+                          "비밀 단어 힌트가 여기에 보일 예정입니다"
                         </p>
                       </>
                     ) : (
-                      secretWordList[0].content.map((item, i) => {
-                        return (
-                          <p
-                            key={i}
-                            className="text-sm text-rose-500 py-[4px] px-[8px] bg-rose-500/10 rounded-[8px] w-fit"
-                          >
-                            {item}
-                          </p>
-                        );
-                      })
+                      <p className="text-sm text-rose-500 py-[4px] px-[8px] bg-rose-500/10 rounded-[8px] w-fit">
+                        {secretWord}
+                      </p>
                     )}
                   </div>
 
@@ -886,13 +950,14 @@ export default function MissionDetail() {
                   disabled={quizSubmitted}
                   className={`
                     w-full p-4 rounded-[20px] border-[0.75px] text-left transition-all
-                    ${quizSubmitted && index === mission.quizAnswer
-                      ? "border-lime-500 bg-lime-50"
-                      : quizSubmitted && index === selectedQuiz
-                        ? "border-red-500 bg-red-50"
-                        : selectedQuiz === index
-                          ? "border-lime-500 bg-lime-50"
-                          : "border-[#EBEBF0] hover:border-lime-300"
+                    ${
+                      quizSubmitted && index === mission.quizAnswer
+                        ? "border-lime-500 bg-lime-50"
+                        : quizSubmitted && index === selectedQuiz
+                          ? "border-red-500 bg-red-50"
+                          : selectedQuiz === index
+                            ? "border-lime-500 bg-lime-50"
+                            : "border-[#EBEBF0] hover:border-lime-300"
                     }
                     ${quizSubmitted ? "cursor-not-allowed" : "cursor-pointer"}
                   `}
@@ -901,12 +966,13 @@ export default function MissionDetail() {
                     <span
                       className={`
                       font-medium
-                      ${quizSubmitted && index === mission.quizAnswer
+                      ${
+                        quizSubmitted && index === mission.quizAnswer
                           ? "text-lime-700"
                           : quizSubmitted && index === selectedQuiz
                             ? "text-red-700"
                             : "text-gray-700"
-                        }
+                      }
                     `}
                     >
                       {option}

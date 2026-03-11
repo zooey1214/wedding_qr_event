@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import searchAnimation from '../../assets/search-animation.json';
 import arrow_down from '../../assets/arrow_down.json';
 import Lottie from 'lottie-react';
-
+import { supabase } from '../../lib/supabase';
 
 export default function EventDraw() {
   const navigate = useNavigate();
@@ -12,14 +12,9 @@ export default function EventDraw() {
   const [showResult, setShowResult] = useState(false);
   const [ticketText, setTicketText] = useState('두구두구');
   const [isDrawing, setIsDrawing] = useState(false);
+  const [winner, setWinner] = useState<{name: string, nickname: string} | null>(null);
 
-  // Mock winner
-  const winner = {
-    name: '최동석',
-    nickname: '동석바위',
-  };
-
-  const startDraw = () => {
+  const startDraw = async () => {
     setIsDrawing(true);
     let dotsCount = 0;
     const textInterval = setInterval(() => {
@@ -31,20 +26,62 @@ export default function EventDraw() {
       setTicketText(`두구두구\n행운의 주인공은?${'.'.repeat(dotsCount)}`);
     }, 500);
 
-    const delayTimeout = setTimeout(() => {
-      clearInterval(textInterval);
-      setTicketText(`두구두구\n행운의 주인공은!...`);
+    try {
+      // 1. Fetch available lottery tickets combined with guest info
+      const { data, error } = await supabase
+        .from('lottery_tickets')
+        .select(`
+          id,
+          ticket_number,
+          guest_id,
+          guests (
+            name,
+            nickname
+          )
+        `)
+        .eq('expired', false);
 
-      // Randomly pick a ticket number (mock logic)
-      setTicketNumber(Math.floor(Math.random() * 90) + 10);
-      setShowResult(true);
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        clearInterval(textInterval);
+        alert('추첨 가능한 응모권이 없습니다.');
+        setIsDrawing(false);
+        return;
+      }
+
+      // 2. Randomly pick a ticket
+      const winningTicket = data[Math.floor(Math.random() * data.length)];
+
+      // 3. Update all tickets for this guest to expired = true
+      await supabase
+        .from('lottery_tickets')
+        .update({ expired: true })
+        .eq('guest_id', winningTicket.guest_id);
+
+      // 4. Simulate delay and show result
+      setTimeout(() => {
+        clearInterval(textInterval);
+        setTicketText(`두구두구\n행운의 주인공은!...`);
+
+        setTicketNumber(winningTicket.ticket_number);
+        const guestInfo: any = Array.isArray(winningTicket.guests)
+          ? winningTicket.guests[0]
+          : winningTicket.guests;
+
+        setWinner({
+          name: guestInfo?.name || '',
+          nickname: guestInfo?.nickname || '',
+        });
+        setShowResult(true);
+        setIsDrawing(false);
+      }, 3000);
+    } catch (err) {
+      console.error(err);
+      clearInterval(textInterval);
+      alert('추첨 중 오류가 발생했습니다.');
       setIsDrawing(false);
-    }, 3000);
-
-    return () => {
-      clearInterval(textInterval);
-      clearTimeout(delayTimeout);
-    };
+    }
   };
 
   return (
@@ -119,10 +156,10 @@ export default function EventDraw() {
                 </div>
                 <div className="mt-0 flex flex-col items-center relative z-20">
                   <div className="text-3xl font-black text-gray-900 mb-1">
-                    {winner.name} 님
+                    {winner?.name} 님
                   </div>
                   <div className="text-lg font-bold text-gray-500">
-                    "{winner.nickname}"
+                    "{winner?.nickname}"
                   </div>
                 </div>
               </div>
