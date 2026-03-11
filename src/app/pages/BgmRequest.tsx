@@ -1,8 +1,9 @@
-import { useState, useEffect, useLayoutEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, Send, Music, ListMusic } from 'lucide-react';
 import Lottie from 'lottie-react';
 import checkAnimation from '../../assets/check-animation.json';
+import { supabase } from '../../lib/supabase';
 
 interface BgmRequest {
   id: string;
@@ -20,46 +21,72 @@ export default function BgmRequest() {
   const [requests, setRequests] = useState<BgmRequest[]>([]);
   const [submitted, setSubmitted] = useState(false);
 
+  const guestId = localStorage.getItem('guestId');
+
+  const fetchRequests = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('bgm')
+        .select(`
+          id,
+          song,
+          artist,
+          created_at,
+          guests (
+            name,
+            nickname
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        const parsedRequests: BgmRequest[] = data.map((entry: any) => ({
+          id: entry.id,
+          name: entry.guests?.name || entry.guests?.nickname || '게스트',
+          song: entry.song,
+          artist: entry.artist || '',
+          timestamp: new Date(entry.created_at)
+        }));
+        setRequests(parsedRequests);
+      }
+    } catch (err) {
+      console.error('Error fetching bgm requests', err);
+    }
+  };
+
   useEffect(() => {
     window.scrollTo(0, 0);
-    const guestName = localStorage.getItem('guestName');
-    if (guestName) {
-      setName(guestName);
-    }
+    fetchRequests();
   }, []);
 
-  useEffect(() => {
-    const saved = localStorage.getItem('bgmRequests');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setRequests(parsed.map((r: any) => ({
-        ...r,
-        timestamp: new Date(r.timestamp)
-      })));
-    }
-  }, []);
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!song.trim()) return;
+    if (!song.trim() || !guestId) return;
 
-    const newRequest: BgmRequest = {
-      id: Date.now().toString(),
-      name: name.trim() || '게스트',
-      song: song.trim(),
-      artist: artist.trim(),
-      timestamp: new Date()
-    };
+    try {
+      const { error } = await supabase
+        .from('bgm')
+        .insert([
+          {
+            guest_id: guestId,
+            song: song.trim(),
+            artist: artist.trim()
+          }
+        ]);
 
-    const updatedRequests = [newRequest, ...requests];
-    setRequests(updatedRequests);
-    localStorage.setItem('bgmRequests', JSON.stringify(updatedRequests));
+      if (error) throw error;
 
-    setSubmitted(true);
-    setTimeout(() => {
-      navigate('/');
-    }, 2000);
+      setSubmitted(true);
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
+    } catch (err) {
+      console.error('Error submitting bgm request', err);
+      alert('신청에 실패했습니다. 다시 시도해주세요.');
+    }
   };
 
   return (
