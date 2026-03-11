@@ -1,17 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router';
-import { ChevronRight, Ticket, BookHeart, Music } from 'lucide-react';
-import { MISSIONS } from '../types/mission';
-import { Icon1 } from '../../components/icons/Icon1';
-import { Icon2 } from '../../components/icons/Icon2';
-import { Icon3 } from '../../components/icons/Icon3';
-import { Icon4 } from '../../components/icons/Icon4';
-import { Icon5 } from '../../components/icons/Icon5';
-import { Icon6 } from '../../components/icons/Icon6';
-import Lottie from 'lottie-react';
-import { secretWordList } from '../../assets/secretWords';
+import { useState, useEffect, useRef } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
+import { ChevronRight, Ticket, BookHeart, Music } from "lucide-react";
+import { MISSIONS } from "../types/mission";
+import { Icon1 } from "../../components/icons/Icon1";
+import { Icon2 } from "../../components/icons/Icon2";
+import { Icon3 } from "../../components/icons/Icon3";
+import { Icon4 } from "../../components/icons/Icon4";
+import { Icon5 } from "../../components/icons/Icon5";
+import { Icon6 } from "../../components/icons/Icon6";
 
-import { supabase } from '../../lib/supabase';
+import { supabase } from "../../lib/supabase";
 
 export default function Home() {
   const [searchParams] = useSearchParams();
@@ -22,7 +20,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [isValidGuest, setIsValidGuest] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null); // Ref 생성
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function loadGuestData() {
@@ -34,9 +32,10 @@ export default function Home() {
         setIsValidGuest(false);
         return;
       }
-      
+
       // Save it temporarily so other pages can still use the localstorage if they didn't migrate yet
       if (urlGuestId) {
+        localStorage.clear();
         localStorage.setItem("guestId", urlGuestId);
       }
 
@@ -44,7 +43,7 @@ export default function Home() {
         // 2. Verify guest existence
         const { data: guestData, error: guestError } = await supabase
           .from("guests")
-          .select("name")
+          .select("name, secret_word_id")
           .eq("id", activeGuestId)
           .single();
 
@@ -66,8 +65,8 @@ export default function Home() {
             .eq("is_completed", true),
           supabase
             .from("lottery_tickets")
-            .select("id", { count: 'exact' })
-            .eq("guest_id", activeGuestId)
+            .select("id", { count: "exact" })
+            .eq("guest_id", activeGuestId),
         ]);
 
         if (missionsRes.data) {
@@ -102,18 +101,25 @@ export default function Home() {
       <div className="min-h-screen flex items-center justify-center bg-[#FFF8F9]">
         <div className="flex flex-col items-center gap-4 text-center">
           <h1 className="text-3xl font-bold text-gray-800">404</h1>
-          <p className="text-gray-600 font-medium">유효하지 않은 접근이거나<br/>없는 하객 정보입니다.</p>
+          <p className="text-gray-600 font-medium">
+            유효하지 않은 접근이거나
+            <br />
+            없는 하객 정보입니다.
+          </p>
         </div>
       </div>
     );
   }
 
-
-  const completionRate = Math.round((completedMissions.length / MISSIONS.length) * 100);
+  const completionRate = Math.round(
+    (completedMissions.length / MISSIONS.length) * 100,
+  );
 
   return (
-    <div className='w-screen flex flex-col items-center h-screen bg-gradient-to-b from-[#FFF0F5] from-[20%] to-white to-[65%] fixed overflow-y-scroll px-[16px] pb-[100px]' ref={scrollRef}>
-
+    <div
+      className="w-screen flex flex-col items-center h-screen bg-gradient-to-b from-[#FFF0F5] from-[20%] to-white to-[65%] fixed overflow-y-scroll px-[16px] pb-[100px]"
+      ref={scrollRef}
+    >
       {/* <div className="w-full h-full ">
 
       </div> */}
@@ -122,10 +128,12 @@ export default function Home() {
       <div className="flex flex-col w-full bg-transparent">
         <div className="flex flex-1  flex-col self-start w-[100%] px-[16px] py-8 pt-[80px] text-left">
           <p className="text-[26px] font-bold text-[#000000] whitespace-pre-line leading-snug">
-            안녕하세요, {guestName}님{'\n'}
+            안녕하세요, {guestName}님{"\n"}
             경품 미션에 도전해보세요 :)
           </p>
-          <p className="mt-2 font-medium text-lg text-gray-500">완료한 스탬프만큼 추첨권을 드려요</p>
+          <p className="mt-2 font-medium text-lg text-gray-500">
+            완료한 스탬프만큼 추첨권을 드려요
+          </p>
         </div>
       </div>
 
@@ -136,8 +144,20 @@ export default function Home() {
           <div className="relative w-full pl-[2%] pr-[2%] py-8 my-2 flex justify-center">
             <div className="relative w-full aspect-[562/276] max-w-[400px]">
               {/* Stamp Board Background Path */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none scale-[0.85] origin-center" viewBox="0 0 562 276" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style={{ zIndex: 0 }}>
-                <path d="M10 10H430.5C471 10 551.5 59.2 551.5 145C551.5 230.8 466.5 265.5 430.5 265.5H135" stroke="#FFB2DA" strokeWidth="20" strokeLinecap="round" />
+              <svg
+                className="absolute inset-0 w-full h-full pointer-events-none scale-[0.85] origin-center"
+                viewBox="0 0 562 276"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                preserveAspectRatio="xMidYMid meet"
+                style={{ zIndex: 0 }}
+              >
+                <path
+                  d="M10 10H430.5C471 10 551.5 59.2 551.5 145C551.5 230.8 466.5 265.5 430.5 265.5H135"
+                  stroke="#FFB2DA"
+                  strokeWidth="20"
+                  strokeLinecap="round"
+                />
               </svg>
 
               {/* Flex Container for Stamps */}
@@ -147,7 +167,18 @@ export default function Home() {
                   {[0, 1, 2].map((idx) => {
                     const mission = MISSIONS[idx];
                     const isCompleted = completedMissions.includes(mission.id);
-                    const IconComp = mission.id === 1 ? Icon6 : mission.id === 2 ? Icon1 : mission.id === 3 ? Icon2 : mission.id === 4 ? Icon3 : mission.id === 5 ? Icon4 : Icon5;
+                    const IconComp =
+                      mission.id === 1
+                        ? Icon6
+                        : mission.id === 2
+                          ? Icon1
+                          : mission.id === 3
+                            ? Icon2
+                            : mission.id === 4
+                              ? Icon3
+                              : mission.id === 5
+                                ? Icon4
+                                : Icon5;
 
                     return (
                       <div
@@ -158,27 +189,50 @@ export default function Home() {
                             scrollRef.current.scrollTo(0, 0);
                           }
                           navigate(`/mission/${mission.id}`, {
-                            preventScrollReset: true
-                          })
+                            preventScrollReset: true,
+                          });
                         }}
                       >
-                        <div className={`
+                        <div
+                          className={`
                           p-[2.5vw] min-w-[76px] min-h-[76px] aspect-square rounded-full flex flex-col items-center justify-center
                           transition-all duration-300 shadow-sm relative
-                          ${isCompleted
-                            ? 'bg-[#FFFAFC] border-[2px] border-rose-400 scale-[1] shadow-md'
-                            : 'bg-[#FFFAFC] border-[1px] border-dashed border-rose-200'
+                          ${
+                            isCompleted
+                              ? "bg-[#FFFAFC] border-[2px] border-rose-400 scale-[1] shadow-md"
+                              : "bg-[#FFFAFC] border-[1px] border-dashed border-rose-200"
                           }
-                        `}>
+                        `}
+                        >
                           {isCompleted ? (
                             <>
-                              <div className="flex flex-col items-center justify-center w-full h-full pt-1" style={{ gap: '0px' }}>
+                              <div
+                                className="flex flex-col items-center justify-center w-full h-full pt-1"
+                                style={{ gap: "0px" }}
+                              >
                                 <IconComp className="w-9 h-9 opacity-90 scale-[1]" />
                               </div>
                               <div className="absolute -bottom-1 -right-1 w-7 h-7 z-20">
-                                <svg width="100%" height="100%" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <circle cx="14" cy="14" r="14" fill="#fb7185" />
-                                  <path d="M8 14L12.5 18.5L20 9" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                <svg
+                                  width="100%"
+                                  height="100%"
+                                  viewBox="0 0 28 28"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <circle
+                                    cx="14"
+                                    cy="14"
+                                    r="14"
+                                    fill="#fb7185"
+                                  />
+                                  <path
+                                    d="M8 14L12.5 18.5L20 9"
+                                    stroke="white"
+                                    strokeWidth="2.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
                                 </svg>
                               </div>
                             </>
@@ -187,7 +241,7 @@ export default function Home() {
                           )}
                         </div>
                       </div>
-                    )
+                    );
                   })}
                 </div>
 
@@ -196,7 +250,18 @@ export default function Home() {
                   {[5, 4, 3].map((idx) => {
                     const mission = MISSIONS[idx];
                     const isCompleted = completedMissions.includes(mission.id);
-                    const IconComp = mission.id === 1 ? Icon6 : mission.id === 2 ? Icon1 : mission.id === 3 ? Icon2 : mission.id === 4 ? Icon3 : mission.id === 5 ? Icon4 : Icon5;
+                    const IconComp =
+                      mission.id === 1
+                        ? Icon6
+                        : mission.id === 2
+                          ? Icon1
+                          : mission.id === 3
+                            ? Icon2
+                            : mission.id === 4
+                              ? Icon3
+                              : mission.id === 5
+                                ? Icon4
+                                : Icon5;
 
                     return (
                       <div
@@ -207,28 +272,50 @@ export default function Home() {
                             scrollRef.current.scrollTo(0, 0);
                           }
                           navigate(`/mission/${mission.id}`, {
-                            preventScrollReset: true
-                          })
+                            preventScrollReset: true,
+                          });
                         }}
                       >
-                        <div className={`
+                        <div
+                          className={`
                           p-[2.5vw] min-w-[76px] min-h-[76px] aspect-square rounded-full flex flex-col items-center justify-center
                           transition-all duration-300 shadow-sm relative
-                          ${isCompleted
-                            ? 'bg-[#FFFAFC] border-[2px] border-rose-400 shadow-md'
-                            : 'bg-[#FFFAFC] border-[1px] border-dashed border-rose-200'
+                          ${
+                            isCompleted
+                              ? "bg-[#FFFAFC] border-[2px] border-rose-400 shadow-md"
+                              : "bg-[#FFFAFC] border-[1px] border-dashed border-rose-200"
                           }
                         `}
                         >
                           {isCompleted ? (
                             <>
-                              <div className="flex flex-col items-center justify-center w-full h-full pt-1" style={{ gap: '0px' }}>
+                              <div
+                                className="flex flex-col items-center justify-center w-full h-full pt-1"
+                                style={{ gap: "0px" }}
+                              >
                                 <IconComp className="w-9 h-9 opacity-90 scale-[1.05]" />
                               </div>
                               <div className="absolute -bottom-1 -right-1 w-7 h-7 z-20">
-                                <svg width="100%" height="100%" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <circle cx="14" cy="14" r="14" fill="#fb7185" />
-                                  <path d="M8 14L12.5 18.5L20 9" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                <svg
+                                  width="100%"
+                                  height="100%"
+                                  viewBox="0 0 28 28"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <circle
+                                    cx="14"
+                                    cy="14"
+                                    r="14"
+                                    fill="#fb7185"
+                                  />
+                                  <path
+                                    d="M8 14L12.5 18.5L20 9"
+                                    stroke="white"
+                                    strokeWidth="2.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
                                 </svg>
                               </div>
                             </>
@@ -237,7 +324,7 @@ export default function Home() {
                           )}
                         </div>
                       </div>
-                    )
+                    );
                   })}
                 </div>
               </div>
@@ -252,20 +339,52 @@ export default function Home() {
             if (isCompleted) return null;
 
             // Select the matching icon component
-            const IconComp = mission.id === 1 ? Icon6 :
-              mission.id === 2 ? Icon1 :
-                mission.id === 3 ? Icon2 :
-                  mission.id === 4 ? Icon3 :
-                    mission.id === 5 ? Icon4 :
-                      mission.id === 6 ? Icon5 : () => null;
+            const IconComp =
+              mission.id === 1
+                ? Icon6
+                : mission.id === 2
+                  ? Icon1
+                  : mission.id === 3
+                    ? Icon2
+                    : mission.id === 4
+                      ? Icon3
+                      : mission.id === 5
+                        ? Icon4
+                        : mission.id === 6
+                          ? Icon5
+                          : () => null;
 
-            let formattedDesc = mission.description.replace(/\n/g, ' ');
-            if (mission.id === 1) formattedDesc = formattedDesc.replace('내 식사자리(지정석)를 확인해주세요!', '내 식사자리(지정석)를\n확인해주세요!');
-            if (mission.id === 2) formattedDesc = formattedDesc.replace('멋진 사진을 촬영하고 업로드해주세요!', '멋진 사진을 촬영하고\n업로드해주세요!');
-            if (mission.id === 3) formattedDesc = formattedDesc.replace('하객과 함께 하트를 만들고 셀카를 촬영해주세요!', '하객과 함께\n하트를 만들고 셀카를 촬영해주세요!');
-            if (mission.id === 4) formattedDesc = formattedDesc.replace('물건을 찾아 사진을 촬영해주세요!', '물건을 찾아\n사진을 촬영해주세요!');
-            if (mission.id === 5) formattedDesc = formattedDesc.replace('나와 같은 비밀의 단어를 가진 사람을 찾아보세요', '비밀의 단어를\n가진 사람을 찾아보세요');
-            if (mission.id === 6) formattedDesc = formattedDesc.replace('오늘 식사에 들어가는 요리를 맞춰보세요!', '식사에 들어가는\n요리를 맞춰보세요!');
+            let formattedDesc = mission.description.replace(/\n/g, " ");
+            if (mission.id === 1)
+              formattedDesc = formattedDesc.replace(
+                "내 식사자리(지정석)를 확인해주세요!",
+                "내 식사자리(지정석)를\n확인해주세요!",
+              );
+            if (mission.id === 2)
+              formattedDesc = formattedDesc.replace(
+                "멋진 사진을 촬영하고 업로드해주세요!",
+                "멋진 사진을 촬영하고\n업로드해주세요!",
+              );
+            if (mission.id === 3)
+              formattedDesc = formattedDesc.replace(
+                "하객과 함께 하트를 만들고 셀카를 촬영해주세요!",
+                "하객과 함께\n하트를 만들고 셀카를 촬영해주세요!",
+              );
+            if (mission.id === 4)
+              formattedDesc = formattedDesc.replace(
+                "물건을 찾아 사진을 촬영해주세요!",
+                "물건을 찾아\n사진을 촬영해주세요!",
+              );
+            if (mission.id === 5)
+              formattedDesc = formattedDesc.replace(
+                "나와 같은 비밀의 단어를 가진 사람을 찾아보세요",
+                "비밀의 단어를\n가진 사람을 찾아보세요",
+              );
+            if (mission.id === 6)
+              formattedDesc = formattedDesc.replace(
+                "오늘 식사에 들어가는 요리를 맞춰보세요!",
+                "식사에 들어가는\n요리를 맞춰보세요!",
+              );
 
             return (
               <Link
@@ -277,7 +396,10 @@ export default function Home() {
                   flex flex-col justify-start gap-4 relative overflow-hidden group
                   hover:bg-rose-50 active:bg-rose-50/60
                 `}
-                style={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)' }}
+                style={{
+                  boxShadow:
+                    "0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
+                }}
               >
                 <div className="absolute inset-0 rounded-[20px] border-[0.75px] border-black/10 pointer-events-none z-10 group-hover:border-rose-300 group-active:border-rose-300 transition-colors"></div>
                 <div className="flex justify-between items-start mb-1 relative z-0">
@@ -310,16 +432,27 @@ export default function Home() {
           <Link
             to="/guestbook"
             className="block bg-white rounded-[20px] hover:-translate-y-1 active:scale-[0.98] transition-all overflow-hidden relative"
-            style={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)' }}
+            style={{
+              boxShadow:
+                "0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
+            }}
           >
             <div className="absolute inset-0 rounded-[20px] border-[0.75px] border-black/10 pointer-events-none z-10"></div>
             <div className="flex flex-col h-full relative z-0">
               <div className="w-full h-[120px] bg-gradient-to-br from-rose-200 to-rose-400 flex items-center justify-center relative">
-                <img src="/img5.png" alt="한마디 남기기 이미지" className="w-[88%] h-full scale-[0.7] object-contain drop-shadow-sm absolute bottom-0" />
+                <img
+                  src="/img5.png"
+                  alt="한마디 남기기 이미지"
+                  className="w-[88%] h-full scale-[0.7] object-contain drop-shadow-sm absolute bottom-0"
+                />
               </div>
               <div className="p-4 pt-4 w-full text-left bg-white">
-                <p className="text-sm font-semibold text-rose-500 mb-1">축하 메시지 남기기</p>
-                <h3 className="text-lg font-bold text-base leading-tight text-[#363638]">한마디 남기기</h3>
+                <p className="text-sm font-semibold text-rose-500 mb-1">
+                  축하 메시지 남기기
+                </p>
+                <h3 className="text-lg font-bold text-base leading-tight text-[#363638]">
+                  한마디 남기기
+                </h3>
               </div>
             </div>
           </Link>
@@ -327,55 +460,55 @@ export default function Home() {
           <Link
             to="/bgm"
             className="block bg-white rounded-[20px] hover:-translate-y-1 active:scale-[0.98] transition-all overflow-hidden relative"
-            style={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)' }}
+            style={{
+              boxShadow:
+                "0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
+            }}
           >
             <div className="absolute inset-0 rounded-[20px] border-[0.75px] border-black/10 pointer-events-none z-10"></div>
             <div className="flex flex-col h-full relative z-0">
               <div className="w-full h-[120px] bg-gradient-to-br from-lime-200 to-lime-500 flex items-center justify-center relative">
-                <img src="/img4.png" alt="BGM 신청 이미지" className="w-[88%] h-full scale-[0.7] object-contain drop-shadow-sm absolute bottom-0" />
+                <img
+                  src="/img4.png"
+                  alt="BGM 신청 이미지"
+                  className="w-[88%] h-full scale-[0.7] object-contain drop-shadow-sm absolute bottom-0"
+                />
               </div>
               <div className="p-4 pt-4 w-full text-left bg-white">
-                <p className="text-sm font-semibold text-lime-700 mb-1">듣고 싶은 노래 신청</p>
-                <h3 className="text-lg font-bold text-base leading-tight text-[#363638]">BGM 신청</h3>
+                <p className="text-sm font-semibold text-lime-700 mb-1">
+                  듣고 싶은 노래 신청
+                </p>
+                <h3 className="text-lg font-bold text-base leading-tight text-[#363638]">
+                  BGM 신청
+                </h3>
               </div>
             </div>
           </Link>
         </div>
       </div>
       <div className="flex flex-col items-center mt-8 mb-24 space-y-4">
-        <p className="text-sm font-medium text-[#8E8E93]">
-          © 2024 Wedding Event
-        </p>
-        <button
-          onClick={() => {
-            if (window.confirm('모든 미션 진행 상황을 초기화하시겠습니까?')) {
-              localStorage.removeItem('missionProgress');
-              window.location.reload();
-            }
-          }}
-          className="text-xs text-gray-400 underline hover:text-gray-600 px-4 py-2"
-        >
-          미션 테스트 리셋
-        </button>
+        <p className="text-sm font-medium text-[#8E8E93]">© 2026 진진방구</p>
       </div>
 
       {/* Sticky Check Tickets Button (Bottom) */}
-      {
-        tickets > 0 && (
-          <div className="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)' }}>
-            <div className="max-w-md mx-auto pointer-events-auto">
-              <Link
-                to="/tickets"
-                className="w-full bg-[#000000] text-white font-bold py-4 rounded-[16px] shadow-lg flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-[0.98] transition-transform"
-              >
-                <Ticket className="w-6 h-6" />
-                내 추첨 번호 {tickets}개 보기
-              </Link>
-            </div>
+      {tickets > 0 && (
+        <div
+          className="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)",
+          }}
+        >
+          <div className="max-w-md mx-auto pointer-events-auto">
+            <Link
+              to="/tickets"
+              className="w-full bg-[#000000] text-white font-bold py-4 rounded-[16px] shadow-lg flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-[0.98] transition-transform"
+            >
+              <Ticket className="w-6 h-6" />내 추첨 번호 {tickets}개 보기
+            </Link>
           </div>
-        )
-      }
-    </div >
-
+        </div>
+      )}
+    </div>
   );
 }

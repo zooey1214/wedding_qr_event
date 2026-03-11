@@ -22,6 +22,7 @@ import seatAnimation from "../../assets/seat-animation.json";
 import { MISSIONS } from "../types/mission";
 import { supabase } from "../../lib/supabase";
 import { secretWordList } from "../../assets/secretWords";
+import { useGuestMissionRealtime } from "../../lib/useGuestMissionRealtime";
 
 export default function MissionDetail() {
   const { id } = useParams();
@@ -32,14 +33,19 @@ export default function MissionDetail() {
   const guestId = localStorage.getItem("guestId"); // Temporarily using local storage to identify the guest
   const [completedMissions, setCompletedMissions] = useState<number[]>([]);
   const [tickets, setTickets] = useState(0); // Optional: if you want to keep showing ticket count
-  const [missionImages, setMissionImages] = useState<Record<number, string>>({});
+  const [missionImages, setMissionImages] = useState<Record<number, string>>(
+    {},
+  );
+
   const [showHint, setShowHint] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState<number | null>(null);
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [showQrScanner, setShowQrScanner] = useState(false);
-  const [secretWord, setSecretWord] = useState("");
+  const [mission5State, setMission5State] = useState(false);
+  const [secretWordData, setSecretWordData] = useState({} as any);
+  const [secretWord, setSecretWord] = useState([] as string[]);
   const [secretWordTitle, setSecretWordTitle] = useState("");
   const [guestName, setGuestName] = useState("게스트");
   const [guestTableNo, setGuestTableNo] = useState("");
@@ -72,6 +78,8 @@ export default function MissionDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  useGuestMissionRealtime(setMission5State);
+
   const loadMissionData = async () => {
     if (!guestId) {
       setIsLoading(false);
@@ -83,28 +91,28 @@ export default function MissionDetail() {
       const [guestRes, missionsRes] = await Promise.all([
         supabase
           .from("guests")
-          .select("name, table_no, secret_words(title, content)")
+          .select("name, table_no, secret_words(title, content, id)")
           .eq("id", guestId)
           .single(),
         supabase
           .from("guest_missions")
           .select("mission_id, is_completed, mission_image")
-          .eq("guest_id", guestId)
+          .eq("guest_id", guestId),
       ]);
 
       if (guestRes.data) {
         setGuestName(guestRes.data.name || "게스트");
         setGuestTableNo(guestRes.data.table_no || "");
-        
+
         if (guestRes.data.secret_words) {
-          const secretWordData = Array.isArray(guestRes.data.secret_words)
+          const swd = Array.isArray(guestRes.data.secret_words)
             ? guestRes.data.secret_words[0]
             : guestRes.data.secret_words;
-
-          if (secretWordData) {
-            setSecretWordTitle(secretWordData.title);
+          setSecretWordData(swd);
+          if (swd) {
+            setSecretWordTitle(swd.title);
             // Assuming content is an array
-            setSecretWord((secretWordData.content as any)?.join(", ") || "");
+            setSecretWord(swd.content);
           }
         }
       }
@@ -112,7 +120,7 @@ export default function MissionDetail() {
       if (missionsRes.data) {
         const completedIds: number[] = [];
         const images: Record<number, string> = {};
-        
+
         missionsRes.data.forEach((m) => {
           if (m.is_completed) completedIds.push(m.mission_id);
           if (m.mission_image) images[m.mission_id] = m.mission_image;
@@ -120,14 +128,16 @@ export default function MissionDetail() {
 
         setCompletedMissions(completedIds);
         setMissionImages(images);
-        
+
         // Seat Mission (Mission 1) UI specific state logic based on completion
         if (missionId === 1 && completedIds.includes(1)) {
           setHasVisitedSeatCheck(true);
           setShowSeatResult(true);
-          setSeatCheckText(`아 ${guestRes.data?.name || "게스트"}님이요~\n잠시만요 자리가…`);
+          setSeatCheckText(
+            `아 ${guestRes.data?.name || "게스트"}님이요~\n잠시만요 자리가…`,
+          );
         }
-        
+
         if (images[missionId]) {
           setUploadedImage(images[missionId]);
         }
@@ -158,6 +168,12 @@ export default function MissionDetail() {
       setFakeNames(options);
     }
   }, [mission, guestName]);
+
+  useEffect(() => {
+    if (mission5State === true) {
+      handleQrScan();
+    }
+  }, [mission5State]);
 
   if (isLoading) {
     return (
@@ -227,7 +243,7 @@ export default function MissionDetail() {
 
   const checkAllMissionsComplete = async () => {
     if (!guestId) return;
-    
+
     const { data } = await supabase
       .from("guest_missions")
       .select("id")
@@ -246,7 +262,10 @@ export default function MissionDetail() {
   const completeMission = async () => {
     if (!isCompleted && guestId) {
       try {
-        const payload: any = { is_completed: true, completed_at: new Date().toISOString() };
+        const payload: any = {
+          is_completed: true,
+          completed_at: new Date().toISOString(),
+        };
         if (uploadedImage) payload.mission_image = uploadedImage;
 
         await supabase
@@ -256,9 +275,9 @@ export default function MissionDetail() {
           .eq("mission_id", missionId);
 
         // Issue lottery ticket
-        await supabase.from("lottery_tickets").insert([
-          { guest_id: guestId, mission_id: missionId }
-        ]);
+        await supabase
+          .from("lottery_tickets")
+          .insert([{ guest_id: guestId, mission_id: missionId }]);
 
         await checkAllMissionsComplete();
         await loadMissionData();
@@ -273,14 +292,17 @@ export default function MissionDetail() {
       try {
         await supabase
           .from("guest_missions")
-          .update({ is_completed: true, completed_at: new Date().toISOString() })
+          .update({
+            is_completed: true,
+            completed_at: new Date().toISOString(),
+          })
           .eq("guest_id", guestId)
           .eq("mission_id", missionId);
 
         // Issue lottery ticket
-        await supabase.from("lottery_tickets").insert([
-          { guest_id: guestId, mission_id: missionId }
-        ]);
+        await supabase
+          .from("lottery_tickets")
+          .insert([{ guest_id: guestId, mission_id: missionId }]);
 
         await checkAllMissionsComplete();
         await loadMissionData();
@@ -583,7 +605,8 @@ export default function MissionDetail() {
                           onClick={() => {
                             const isCorrect =
                               selectedSeatOption !== null &&
-                              fakeNames[selectedSeatOption] === `${guestName}입니다`;
+                              fakeNames[selectedSeatOption] ===
+                                `${guestName}입니다`;
                             setSeatQuizSubmitted(true);
 
                             if (isCorrect) {
@@ -847,20 +870,29 @@ export default function MissionDetail() {
                     </div>
                   )}
                   <p className="text-3xl font-bold text-rose-500 my-1">
-                    {secretWordList[0].title}
+                    {secretWordTitle || "비밀의 단어"}
                   </p>
 
                   <div className="mb-4 mt-4 flex flex-col items-center gap-2">
                     {!isCompleted ? (
                       <>
-                        <p className="text-sm text-rose-500 py-[4px] px-[8px] bg-rose-500/10 rounded-[8px] w-fit">
-                          "비밀 단어 힌트가 여기에 보일 예정입니다"
+                        <p className="text-sm text-rose-500 py-[4px] px-[8px] bg-rose-500/10 rounded-[8px] w-fit whitespace-pre-line">
+                          {`오늘 결혼식의 주인공들에게\n무슨 의미 일까요?`}
                         </p>
                       </>
                     ) : (
-                      <p className="text-sm text-rose-500 py-[4px] px-[8px] bg-rose-500/10 rounded-[8px] w-fit">
-                        {secretWord}
-                      </p>
+                      <>
+                        {secretWord.map((item, i) => {
+                          return (
+                            <p
+                              key={i}
+                              className="text-sm text-rose-500 py-[4px] px-[8px] bg-rose-500/10 rounded-[8px] w-fit"
+                            >
+                              {item}
+                            </p>
+                          );
+                        })}
+                      </>
                     )}
                   </div>
 
@@ -873,7 +905,7 @@ export default function MissionDetail() {
 
                   <div className="p-4 flex flex-col items-center">
                     <QRCode
-                      value={secretWord || "wedding_quest_qr_standin"}
+                      value={`${window.location.origin}/${secretWordData.id}/${guestId}`}
                       size={150}
                       fgColor="#831843"
                     />
@@ -892,11 +924,47 @@ export default function MissionDetail() {
                     {/* Scanner overlay */}
                     <div className="flex-1 relative w-full h-full flex items-center justify-center">
                       <Scanner
-                        onScan={(result) => {
+                        onScan={async (result) => {
                           if (result && result.length > 0) {
-                            // alert(JSON.stringify(result, null, 2))
-                            // result[0].rawValue
-                            handleQrScan();
+                            const raw = result[0].rawValue;
+                            const targetGusetId =
+                              raw.split("/")[raw.split("/").length - 1];
+                            const secretWordId =
+                              raw.split("/")[raw.split("/").length - 2];
+                            // alert(secretWordId);
+                            // alert(guestId);
+
+                            if (guestId) {
+                              if (secretWordId === secretWordData.id) {
+                                alert("성공!");
+                                window.localStorage.setItem(
+                                  "five_mission_completed",
+                                  "true",
+                                );
+                                const { data, error } = await supabase
+                                  .from("guest_missions")
+                                  .update({ is_completed: true })
+                                  .eq("mission_id", 5) // 첫 번째 조건
+                                  .eq("guest_id", targetGusetId); // 두 번째 조건 (AND)
+                                if (error) {
+                                  console.error(
+                                    "업데이트 실패:",
+                                    error.message,
+                                  );
+                                } else {
+                                  handleQrScan();
+                                }
+                                return;
+                              } else {
+                                alert("틀렸습니다");
+                                return;
+                              }
+                            }
+                            // 여기서 찍은 사람의 시크릿 id와 게스트 id를 찾을수있다.
+                            // 나의 시크릿 id와 찍은사람의 시크릿 id가 같을 경우
+                            // 상대방과 나의 guest_missions의 미션넘버 5번을 complete상태로 바꾼다.
+                            // 이때 supabase의 리
+                            // return;
                           }
                         }}
                         onError={(error: any) =>
@@ -928,7 +996,9 @@ export default function MissionDetail() {
                   >
                     <div className="max-w-md mx-auto  w-full pointer-events-auto">
                       <button
-                        onClick={() => setShowQrScanner(true)}
+                        onClick={() => {
+                          setShowQrScanner(true);
+                        }}
                         className="w-full bg-rose-400 text-white font-bold py-[16px] rounded-[16px] shadow-[0_4px_12px_rgba(247,50,149,0.3)] flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-[0.98] transition-transform border-[0.75px] border-transparent"
                       >
                         <QrCode className="w-5 h-5" />
