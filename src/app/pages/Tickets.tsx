@@ -91,10 +91,10 @@ export default function Tickets() {
   return (
     <div className="min-h-screen bg-white relative overflow-hidden">
       {/* Background Layer (cleared) */}
-      <div 
+      <div
         className="absolute inset-0 z-0 pointer-events-none"
       />
-      
+
       <div className="relative z-10 flex flex-col min-h-screen">
         {/* Header */}
         <div className="sticky top-0 z-10 pt-4 pb-2">
@@ -138,12 +138,12 @@ export default function Tickets() {
                 <div className="w-full mt-4 -mb-[53px] pointer-events-none z-0 relative flex justify-center items-end pb-2">
                   <div className="h-10" />
                 </div>
-                
+
                 <div className="w-full flex flex-col items-center">
                   <div className="w-full flex justify-center z-20 overflow-hidden" style={{ width: '100%' }}>
                     <ResultTopDeco className="w-[110%] h-auto max-w-none -mb-[30px]" />
                   </div>
-                  
+
                   <div className="bg-cyan-50 border-[1.5px] border-cyan-200 rounded-t-none rounded-b-[20px] px-4 py-[44px] text-center w-full flex-col flex relative z-10 m-0" style={{ boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)' }}>
                     <div className="flex flex-wrap justify-center gap-3">
                       {ticketNumbers.map((num, idx) => (
@@ -157,11 +157,11 @@ export default function Tickets() {
                           }}
                         >
                           <svg className="w-[85%] h-auto drop-shadow-sm" viewBox="0 0 176 169" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="87.5" cy="84.5" r="84" fill="#CEFAFE" stroke="#A2F4FD"/>
-                            <path d="M171.997 85C171.728 131.438 134.001 169 87.5 169C40.9987 169 3.272 131.438 3.00293 85H171.997Z" fill="#FFA1AD"/>
-                            <rect y="74" width="176" height="22" rx="4" fill="#FFCCD3"/>
+                            <circle cx="87.5" cy="84.5" r="84" fill="#CEFAFE" stroke="#A2F4FD" />
+                            <path d="M171.997 85C171.728 131.438 134.001 169 87.5 169C40.9987 169 3.272 131.438 3.00293 85H171.997Z" fill="#FFA1AD" />
+                            <rect y="74" width="176" height="22" rx="4" fill="#FFCCD3" />
                           </svg>
-                          <span className="absolute font-black text-rose-900 z-10" style={{ fontSize: 'clamp(1.5rem, 6vw, 2rem)', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', marginTop: '-2px' }}>
+                          <span className="absolute font-black text-rose-900 z-10" style={{ fontSize: 'clamp(1.5rem, 6vw, 2rem)', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', marginTop: '-2px', fontFamily: "CuteLotte", fontWeight: 500 }}>
                             {num}
                           </span>
                         </div>

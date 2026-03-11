@@ -386,7 +386,7 @@ export default function MissionDetail() {
         <div className={`max-w-md mx-auto px-6 `}>
           <div className="text-center">
             {mission.id === 1 ? (
-              <h1 className="text-[26px] font-bold text-[#000000] mb-[2px] whitespace-pre-line">
+              <h1 className="text-[26px] font-bold text-[#000000] mb-[2px] whitespace-pre-line" >
                 {seatCheckText}
               </h1>
             ) : (
@@ -447,16 +447,15 @@ export default function MissionDetail() {
                         disabled={seatQuizSubmitted || showSeatResult}
                         className={`
                             w-full p-4 rounded-[20px] border-[0.75px] text-left transition-all
-                            ${
-                              seatQuizSubmitted && isCorrect
+                            ${seatQuizSubmitted && isCorrect
+                            ? "border-lime-500 bg-lime-50"
+                            : seatQuizSubmitted &&
+                              index === selectedSeatOption
+                              ? "border-red-500 bg-red-50"
+                              : selectedSeatOption === index
                                 ? "border-lime-500 bg-lime-50"
-                                : seatQuizSubmitted &&
-                                    index === selectedSeatOption
-                                  ? "border-red-500 bg-red-50"
-                                  : selectedSeatOption === index
-                                    ? "border-lime-500 bg-lime-50"
-                                    : "border-[#EBEBF0] hover:border-lime-300"
-                            }
+                                : "border-[#EBEBF0] hover:border-lime-300"
+                          }
                             ${seatQuizSubmitted ? "cursor-not-allowed" : "cursor-pointer"}
                           `}
                       >
@@ -464,13 +463,12 @@ export default function MissionDetail() {
                           <span
                             className={`
                               font-medium
-                              ${
-                                seatQuizSubmitted && isCorrect
-                                  ? "text-lime-700"
-                                  : seatQuizSubmitted &&
-                                      index === selectedSeatOption
-                                    ? "text-red-700"
-                                    : "text-gray-700"
+                              ${seatQuizSubmitted && isCorrect
+                                ? "text-lime-700"
+                                : seatQuizSubmitted &&
+                                  index === selectedSeatOption
+                                  ? "text-red-700"
+                                  : "text-gray-700"
                               }
                             `}
                           >
@@ -484,7 +482,7 @@ export default function MissionDetail() {
                   {seatQuizSubmitted &&
                     selectedSeatOption !== null &&
                     fakeNames[selectedSeatOption] !==
-                      `${localStorage.getItem("guestName") || "게스트"}입니다` && (
+                    `${localStorage.getItem("guestName") || "게스트"}입니다` && (
                       <div className="bg-red-50 border-[0.75px] border-red-300 rounded-[20px] p-4 text-center mt-2">
                         <p className="text-red-700 font-medium">
                           아쉽지만 틀렸습니다. 다시 시도해보세요!
@@ -517,7 +515,7 @@ export default function MissionDetail() {
                             const isCorrect =
                               selectedSeatOption !== null &&
                               fakeNames[selectedSeatOption] ===
-                                `${guestName}입니다`;
+                              `${guestName}입니다`;
                             setSeatQuizSubmitted(true);
 
                             if (isCorrect) {
@@ -565,7 +563,10 @@ export default function MissionDetail() {
                           "0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
                       }}
                     >
-                      <p className="text-4xl font-bold text-[#000000] my-0 flex justify-center items-baseline gap-1">
+                      <p className="text-4xl font-bold text-[#000000] my-0 flex justify-center items-baseline gap-1" style={{
+                        fontFamily: "CuteLotte",
+                        fontWeight: 400
+                      }}>
                         15<span className="text-xl">번</span>
                       </p>
                     </div>
@@ -701,7 +702,7 @@ export default function MissionDetail() {
                       <div className="max-w-md mx-auto flex gap-3 w-full  pointer-events-auto">
                         <button
                           onClick={() => setUploadedImage(null)}
-                          className="flex-1 px-[16px] py-[16px] bg-[#ffffff] text-rose-400 rounded-[16px] font-bold hover:bg-pink-50 hover:-translate-y-1 active:scale-[0.98] transition-all border-[1px] border-rose-300 shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
+                          className="flex-1 px-[16px] py-[16px] bg-[#ffffff] text-rose-400 rounded-[16px] font-bold hover:bg-pink-50 hover:-translate-y-1 active:scale-[0.98] transition-all border-[1px] border-rose-200 shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
                         >
                           다시 촬영
                         </button>
@@ -779,10 +780,10 @@ export default function MissionDetail() {
                     {!isCompleted ? (
                       <>
                         <p className="text-sm text-rose-500 py-[4px] px-[8px] bg-rose-500/10 rounded-[8px] w-fit">
-                          "종이로 되어있고 특별한 날 사용해요"
+                          "특별한 날 사용하는 종이예요"
                         </p>
                         <p className="text-sm text-rose-500 py-[4px] px-[8px] bg-rose-500/10 rounded-[8px] w-fit">
-                          "오늘도 이걸 하고 왔어요"
+                          "요오늘도 이걸 하고 왔어"
                         </p>
                       </>
                     ) : (
@@ -885,14 +886,13 @@ export default function MissionDetail() {
                   disabled={quizSubmitted}
                   className={`
                     w-full p-4 rounded-[20px] border-[0.75px] text-left transition-all
-                    ${
-                      quizSubmitted && index === mission.quizAnswer
-                        ? "border-lime-500 bg-lime-50"
-                        : quizSubmitted && index === selectedQuiz
-                          ? "border-red-500 bg-red-50"
-                          : selectedQuiz === index
-                            ? "border-lime-500 bg-lime-50"
-                            : "border-[#EBEBF0] hover:border-lime-300"
+                    ${quizSubmitted && index === mission.quizAnswer
+                      ? "border-lime-500 bg-lime-50"
+                      : quizSubmitted && index === selectedQuiz
+                        ? "border-red-500 bg-red-50"
+                        : selectedQuiz === index
+                          ? "border-lime-500 bg-lime-50"
+                          : "border-[#EBEBF0] hover:border-lime-300"
                     }
                     ${quizSubmitted ? "cursor-not-allowed" : "cursor-pointer"}
                   `}
@@ -901,13 +901,12 @@ export default function MissionDetail() {
                     <span
                       className={`
                       font-medium
-                      ${
-                        quizSubmitted && index === mission.quizAnswer
+                      ${quizSubmitted && index === mission.quizAnswer
                           ? "text-lime-700"
                           : quizSubmitted && index === selectedQuiz
                             ? "text-red-700"
                             : "text-gray-700"
-                      }
+                        }
                     `}
                     >
                       {option}
@@ -960,7 +959,7 @@ export default function MissionDetail() {
 
       {isCompleted && (
         <div
-          className="fixed bottom-0 left-0 right-0 p-6 z-50 pointer-events-none bg-gradient-to-t from-white from-50% via-white/80 to-transparent"
+          className="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none bg-gradient-to-t from-white from-50% via-white/80 to-transparent"
           style={{
             background:
               "linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,0) 100%)",

@@ -36,7 +36,7 @@ export const MISSIONS: Mission[] = [
   {
     id: 3,
     title: '모르는 하객과 하트 만들기',
-    description: '포토존에서 모르는 하객과 함께\n하트를 만들고 셀카를 촬영해주세요!',
+    description: '포토월에서 모르는 하객과 함께\n하트를 만들고 셀카를 촬영해주세요!',
     type: 'photo',
     completed: false,
   },

@@ -5,6 +5,9 @@ import Guestbook from "./pages/Guestbook";
 import BgmRequest from "./pages/BgmRequest";
 import Tickets from "./pages/Tickets";
 import Admin from "./pages/Admin";
+import Event from "./pages/Event";
+import EventDraw from "./pages/EventDraw";
+import EventFirstPrize from "./pages/EventFirstPrize";
 
 export const router = createBrowserRouter([
   {
@@ -30,5 +33,17 @@ export const router = createBrowserRouter([
   {
     path: "/admin",
     Component: Admin,
+  },
+  {
+    path: "/event",
+    Component: Event,
+  },
+  {
+    path: "/event/lottery",
+    Component: EventDraw,
+  },
+  {
+    path: "/event/first-prize",
+    Component: EventFirstPrize,
   },
 ]);
