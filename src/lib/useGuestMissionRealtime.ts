@@ -19,7 +19,6 @@ export const useGuestMissionRealtime = (setState: any) => {
           const mission5Completed = window.localStorage.getItem(
             "five_mission_completed",
           );
-          alert("신호옴");
           if (
             newRecord.mission_id === 5 &&
             newRecord.is_completed === true &&

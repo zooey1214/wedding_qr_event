@@ -9,6 +9,7 @@ import {
   ChevronUp,
   ChevronDown,
   ArrowUpDown,
+  Download,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 type UserData = {
@@ -318,6 +319,40 @@ export default function Event() {
     }
   };
 
+  const handleExportCSV = () => {
+    if (users.length === 0) {
+      alert("출력할 하객 데이터가 없습니다.");
+      return;
+    }
+
+    // CSV 헤더
+    let csvContent = "이름,닉네임,식사자리,비밀의단어,QR링크\n";
+
+    // 데이터 행 추가 (따옴표로 감싸서 엑셀에서 쉼표 오작동 방지)
+    users.forEach((user) => {
+      const name = `"${user.name}"`;
+      const nickname = `"${user.nickname}"`;
+      const tableNo = `"${user.table_no}"`;
+      const secretWord = `"${user.secretWord}"`;
+      const qrLink = `"${user.qrLink}"`;
+      csvContent += `${name},${nickname},${tableNo},${secretWord},${qrLink}\n`;
+    });
+
+    // UTF-8 BOM(Byte Order Mark) 추가 - 엑셀에서 한글이 깨지지 않게 하기 위함
+    const bom = "\uFEFF";
+    const blob = new Blob([bom + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    
+    // 다운로드 트리거
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `하객_QR_리스트_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const openPhotoModal = (photoUrl: string) => {
     setCurrentPhoto(photoUrl);
     setPhotoModalOpen(true);
@@ -336,6 +371,13 @@ export default function Event() {
             어드민 대시보드
           </h1>
           <div className="flex flex-wrap justify-end gap-3">
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-[12px] text-sm font-bold hover:bg-indigo-100 hover:-translate-y-0.5 active:scale-[0.98] transition-all whitespace-nowrap"
+            >
+              <Download className="w-4 h-4" />
+              QR 리스트 뽑기 (CSV)
+            </button>
             <button
               onClick={() => setIsBulkModalOpen(true)}
               className="flex items-center gap-2 px-4 py-2.5 bg-gray-600 text-white border border-gray-600 rounded-[12px] text-sm font-bold hover:bg-gray-700 hover:-translate-y-0.5 active:scale-[0.98] transition-all whitespace-nowrap"
