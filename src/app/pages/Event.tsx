@@ -12,6 +12,8 @@ import {
   Download,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import QRCode from "react-qr-code";
+
 type UserData = {
   id: string;
   name: string;
@@ -27,6 +29,8 @@ export default function Event() {
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserData[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [qrModalUser, setQrModalUser] = useState<UserData | null>(null);
 
   // Photo Modal State
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
@@ -64,6 +68,13 @@ export default function Event() {
     if (a[key] > b[key]) return sortConfig.direction === "asc" ? 1 : -1;
     return 0;
   });
+
+  const filteredAndSortedUsers = sortedUsers.filter((user) =>
+    user.name.includes(searchTerm) ||
+    user.nickname.includes(searchTerm) ||
+    user.table_no.includes(searchTerm) ||
+    user.secretWord.includes(searchTerm)
+  );
 
   const loadUsers = async () => {
     const { data: guestsData, error: guestsError } = await supabase
@@ -366,10 +377,19 @@ export default function Event() {
     <div className="min-h-[100dvh] bg-[#FFF8F9] p-4 text-gray-800">
       <div className="max-w-[1400px] mx-auto space-y-6">
         {/* Header Title & Actions */}
-        <div className="flex flex-col gap-4">
-          <h1 className="text-2xl pt-2 font-bold text-gray-900 tracking-tight">
-            어드민 대시보드
-          </h1>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl pt-2 font-bold text-gray-900 tracking-tight whitespace-nowrap">
+              어드민 대시보드
+            </h1>
+            <input
+              type="text"
+              placeholder="이름, 닉네임, 키워드 검색..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="mt-2 px-4 py-2 border border-rose-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-rose-400/20 focus:border-rose-400 bg-white min-w-[250px]"
+            />
+          </div>
           <div className="flex flex-wrap justify-end gap-3">
             <button
               onClick={handleExportCSV}
@@ -523,7 +543,7 @@ export default function Event() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-rose-50 text-gray-600 bg-white">
-                {sortedUsers.map((user) => (
+                {filteredAndSortedUsers.map((user) => (
                   <tr
                     key={user.id}
                     className="hover:bg-rose-50/40 transition-colors group"
@@ -575,12 +595,12 @@ export default function Event() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 max-w-[160px]">
-                        {/* <span
-                          className="text-gray-500 font-mono text-xs bg-gray-50 px-2 py-1 rounded flex-1 border border-gray-100"
-                          title={user.qrLink}
+                        <button
+                          onClick={() => setQrModalUser(user)}
+                          className="px-3 py-1.5 bg-rose-50 text-rose-500 rounded-[8px] text-xs font-bold hover:bg-rose-100 transition-colors border border-rose-100 whitespace-nowrap"
                         >
-                          {user.qrLink}
-                        </span> */}
+                          QR 보기
+                        </button>
                         <button
                           onClick={async () => {
                             await navigator.clipboard.writeText(user.qrLink);
@@ -600,6 +620,36 @@ export default function Event() {
           </div>
         </div>
       </div>
+
+      {/* QR Modal */}
+      {qrModalUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[24px] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-8 max-w-[400px] w-full flex flex-col items-center relative">
+            <button
+              onClick={() => setQrModalUser(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 p-2 rounded-full transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">{qrModalUser.name} 님</h2>
+            <div className="bg-rose-50 px-4 py-2 rounded-full text-rose-600 font-bold mb-8">
+              식사자리: {qrModalUser.table_no}
+            </div>
+            <div className="p-4 bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
+              <QRCode value={qrModalUser.qrLink} size={200} />
+            </div>
+            <p className="text-sm text-gray-500 mb-6 break-all text-center">
+              {qrModalUser.qrLink}
+            </p>
+            <button
+              onClick={() => setQrModalUser(null)}
+              className="w-full py-3.5 bg-rose-500 text-white rounded-[14px] font-bold text-[15px] shadow-sm hover:bg-rose-600 active:scale-[0.98] transition-all"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Photo Modal */}
       {photoModalOpen && currentPhoto && (
