@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { ChevronRight, Ticket, BookHeart, Music } from "lucide-react";
+import {
+  CalendarClock,
+  ChevronRight,
+  Ticket,
+  BookHeart,
+  Music,
+  X,
+} from "lucide-react";
 import { MISSIONS } from "../types/mission";
 import { Icon1 } from "../../components/icons/Icon1";
 import { Icon2 } from "../../components/icons/Icon2";
@@ -11,6 +18,22 @@ import { Icon6 } from "../../components/icons/Icon6";
 
 import { supabase } from "../../lib/supabase";
 
+const WEDDING_PROGRAM = [
+  "식 전 이벤트",
+  "개식 선언 및 인삿말",
+  "양가 부모님 입장 및 인사",
+  "신랑 입장",
+  "신부 입장",
+  "신랑 신부 맞절",
+  "주례 및 혼인 서약",
+  "성혼 선언",
+  "축가",
+  "축하 편지 낭독",
+  "신랑 신부 인사",
+  "신랑 신부 행진",
+  "사진 촬영 안내",
+];
+
 export default function Home() {
   const [searchParams] = useSearchParams();
   const urlGuestId = searchParams.get("guestId");
@@ -19,6 +42,7 @@ export default function Home() {
   const [guestName, setGuestName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isValidGuest, setIsValidGuest] = useState(false);
+  const [isProgramOpen, setIsProgramOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null); // Ref 생성
   const navigate = useNavigate();
 
@@ -427,6 +451,34 @@ export default function Home() {
           })}
         </div>
 
+        <button
+          type="button"
+          onClick={() => setIsProgramOpen(true)}
+          className="w-full mb-3 bg-white rounded-[20px] p-5 text-left hover:-translate-y-1 active:scale-[0.98] transition-all overflow-hidden relative group"
+          style={{
+            boxShadow:
+              "0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
+          }}
+        >
+          <div className="absolute inset-0 rounded-[20px] border-[0.75px] border-black/10 pointer-events-none z-10 group-hover:border-rose-300 transition-colors"></div>
+          <div className="relative z-0 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-[18px] bg-gradient-to-br from-amber-100 to-rose-200 flex items-center justify-center shadow-sm">
+                <CalendarClock className="w-7 h-7 text-rose-500" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-rose-500 mb-1">
+                  오늘의 진행 순서
+                </p>
+                <h3 className="text-lg font-bold leading-tight text-[#363638]">
+                  식순 보기
+                </h3>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 flex-shrink-0 text-[#363638]" />
+          </div>
+        </button>
+
         {/* Special Missions */}
         <div className="grid grid-cols-2 gap-3 pb-6">
           <Link
@@ -489,6 +541,48 @@ export default function Home() {
       <div className="flex flex-col items-center mt-8 mb-24 space-y-4">
         <p className="text-sm font-medium text-[#8E8E93]">© 2026 진진방구</p>
       </div>
+
+      {isProgramOpen && (
+        <div className="fixed inset-0 z-[60] bg-gray-900/40 backdrop-blur-sm px-4 py-8 flex items-end sm:items-center justify-center">
+          <div className="w-full max-w-md max-h-[82vh] bg-white rounded-[28px] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="sticky top-0 bg-white z-10 px-6 pt-6 pb-4 border-b border-rose-100 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-bold text-rose-500 mb-1">
+                  Wedding Program
+                </p>
+                <h2 className="text-2xl font-black text-gray-900">
+                  식순 보기
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsProgramOpen(false)}
+                className="p-2 rounded-full bg-gray-50 text-gray-500 hover:bg-rose-50 hover:text-rose-500 transition-colors"
+                aria-label="식순 닫기"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-6 py-5 overflow-y-auto max-h-[calc(82vh-96px)]">
+              <ol className="space-y-3">
+                {WEDDING_PROGRAM.map((item, index) => (
+                  <li
+                    key={`${item}-${index}`}
+                    className="flex items-center gap-3 rounded-[16px] bg-[#FFF8F9] border border-rose-100/80 px-4 py-3"
+                  >
+                    <span className="w-8 h-8 flex-shrink-0 rounded-full bg-white border border-rose-200 text-rose-500 text-sm font-black flex items-center justify-center">
+                      {index + 1}
+                    </span>
+                    <span className="text-[15px] font-bold text-gray-800 leading-snug">
+                      {item}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sticky Check Tickets Button (Bottom) */}
       {tickets > 0 && (

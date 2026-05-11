@@ -180,7 +180,6 @@ export default function Tickets() {
                   >
                     <div className="flex flex-wrap justify-center gap-3">
                       {ticketNumbers.map((num, idx) => {
-                        console.log(num, "시발");
                         return (
                           <div
                             key={idx}
@@ -224,7 +223,7 @@ export default function Tickets() {
                                 top: "50%",
                                 transform: "translate(-50%, -50%)",
                                 marginTop: "-2px",
-                                fontFamily: "CuteLotte",
+                                fontFamily: "Pretendard, sans-serif",
                                 fontWeight: 500,
                               }}
                             >

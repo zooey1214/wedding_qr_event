@@ -657,7 +657,7 @@ export default function MissionDetail() {
                       <p
                         className="text-4xl font-bold text-[#000000] my-0 flex justify-center items-baseline gap-1"
                         style={{
-                          fontFamily: "CuteLotte",
+                          fontFamily: "Pretendard, sans-serif",
                           fontWeight: 400,
                         }}
                       >

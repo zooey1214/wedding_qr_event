@@ -10,18 +10,33 @@ export default function EventFirstPrize() {
   const [showResult, setShowResult] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [winner, setWinner] = useState<any>(null);
+  const [winningTicketNumber, setWinningTicketNumber] = useState<number | null>(
+    null,
+  );
 
   const startDraw = async () => {
     setIsDrawing(true);
+    setWinningTicketNumber(null);
 
     try {
-      // 1. Fetch guests and their missions
-      const { data, error } = await supabase.from("guests").select(`
-          *,
-          guest_missions (
-            is_completed
+      // 1. Fetch only guests with active tickets so previous winners are excluded.
+      const { data, error } = await supabase
+        .from("lottery_tickets")
+        .select(`
+          guest_id,
+          ticket_number,
+          guests (
+            id,
+            name,
+            nickname,
+            table_no,
+            mission_complete_at,
+            guest_missions (
+              is_completed
+            )
           )
-        `);
+        `)
+        .eq("expired", false);
 
       if (error) throw error;
 
@@ -31,7 +46,39 @@ export default function EventFirstPrize() {
         return;
       }
 
-      const completedAll = data.filter((g) => g.mission_complete_at !== null);
+      const candidateMap = new Map<string, any>();
+      data.forEach((ticket: any) => {
+        const guest = Array.isArray(ticket.guests)
+          ? ticket.guests[0]
+          : ticket.guests;
+        if (!guest?.id) return;
+
+        if (!candidateMap.has(guest.id)) {
+          candidateMap.set(guest.id, {
+            ...guest,
+            ticketNumbers: [],
+          });
+        }
+
+        candidateMap.get(guest.id).ticketNumbers.push(ticket.ticket_number);
+      });
+
+      const candidates = Array.from(candidateMap.values()).map((guest) => ({
+        ...guest,
+        missionsCompleted:
+          guest.guest_missions?.filter((gm: any) => gm.is_completed).length ||
+          0,
+      }));
+
+      if (candidates.length === 0) {
+        alert("추첨 가능한 하객 정보가 없습니다.");
+        setIsDrawing(false);
+        return;
+      }
+
+      const completedAll = candidates.filter(
+        (g) => g.mission_complete_at !== null,
+      );
       let selectedWinner = null;
 
       if (completedAll.length > 0) {
@@ -42,23 +89,12 @@ export default function EventFirstPrize() {
             new Date(b.mission_complete_at).getTime(),
         );
         selectedWinner = completedAll[0];
-        // Calculate count for UI just in case (should be 6)
-        selectedWinner.missionsCompleted =
-          selectedWinner.guest_missions?.filter((gm: any) => gm.is_completed)
-            .length || 0;
       } else {
         // No one finished all missions, so find max completed missions count
-        const withCounts = data.map((g) => ({
-          ...g,
-          missionsCompleted: g.guest_missions
-            ? g.guest_missions.filter((gm: any) => gm.is_completed).length
-            : 0,
-        }));
-
         const maxCount = Math.max(
-          ...withCounts.map((g) => g.missionsCompleted),
+          ...candidates.map((g) => g.missionsCompleted),
         );
-        const topCandidates = withCounts.filter(
+        const topCandidates = candidates.filter(
           (g) => g.missionsCompleted === maxCount,
         );
 
@@ -67,7 +103,21 @@ export default function EventFirstPrize() {
           topCandidates[Math.floor(Math.random() * topCandidates.length)];
       }
 
+      const selectedTicketNumbers = selectedWinner.ticketNumbers || [];
+      const selectedTicketNumber =
+        selectedTicketNumbers[
+          Math.floor(Math.random() * selectedTicketNumbers.length)
+        ] || null;
+
+      const { error: expireError } = await supabase
+        .from("lottery_tickets")
+        .update({ expired: true })
+        .eq("guest_id", selectedWinner.id);
+
+      if (expireError) throw expireError;
+
       setWinner(selectedWinner);
+      setWinningTicketNumber(selectedTicketNumber);
 
       setTimeout(() => {
         setShowResult(true);
@@ -127,6 +177,11 @@ export default function EventFirstPrize() {
             <div className="flex flex-col items-center justify-center w-full h-full flex-1 mb-20 animate-in zoom-in duration-500">
               <div className="relative flex flex-col items-center justify-center space-y-4">
                 <Trophy className="w-20 h-20 text-yellow-500 drop-shadow-md mb-2" />
+                {winningTicketNumber !== null && (
+                  <div className="text-sm font-black text-rose-700 bg-rose-50 px-4 py-1.5 rounded-full border border-rose-200 shadow-sm">
+                    추첨번호 {winningTicketNumber}
+                  </div>
+                )}
                 <div className="text-sm font-bold text-yellow-600 bg-yellow-50 px-4 py-1.5 rounded-full border border-yellow-200 shadow-sm">
                   {winner?.table_no} 자리
                 </div>
