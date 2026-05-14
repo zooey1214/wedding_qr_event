@@ -11,7 +11,6 @@ import {
 import { MISSIONS } from "../types/mission";
 import { Icon1 } from "../../components/icons/Icon1";
 import { Icon2 } from "../../components/icons/Icon2";
-import { Icon3 } from "../../components/icons/Icon3";
 import { Icon4 } from "../../components/icons/Icon4";
 import { Icon5 } from "../../components/icons/Icon5";
 import { Icon6 } from "../../components/icons/Icon6";
@@ -33,6 +32,14 @@ const WEDDING_PROGRAM = [
   "신랑 신부 행진",
   "사진 촬영 안내",
 ];
+
+const getMissionIcon = (missionId: number) => {
+  if (missionId === 1) return Icon6;
+  if (missionId === 2) return Icon1;
+  if (missionId === 3) return Icon2;
+  if (missionId === 5) return Icon4;
+  return Icon5;
+};
 
 export default function Home() {
   const [searchParams] = useSearchParams();
@@ -188,21 +195,9 @@ export default function Home() {
               <div className="relative z-10 w-full h-full flex flex-col justify-center gap-[34px] py-[4%] ">
                 {/* Top Row: 3 Stamps */}
                 <div className="flex justify-center gap-[16px]  ">
-                  {[0, 1, 2].map((idx) => {
-                    const mission = MISSIONS[idx];
+                  {MISSIONS.slice(0, 3).map((mission) => {
                     const isCompleted = completedMissions.includes(mission.id);
-                    const IconComp =
-                      mission.id === 1
-                        ? Icon6
-                        : mission.id === 2
-                          ? Icon1
-                          : mission.id === 3
-                            ? Icon2
-                            : mission.id === 4
-                              ? Icon3
-                              : mission.id === 5
-                                ? Icon4
-                                : Icon5;
+                    const IconComp = getMissionIcon(mission.id);
 
                     return (
                       <div
@@ -271,21 +266,9 @@ export default function Home() {
 
                 {/* Bottom Row: 3 Stamps */}
                 <div className="flex justify-center gap-[16px] w-full ">
-                  {[5, 4, 3].map((idx) => {
-                    const mission = MISSIONS[idx];
+                  {MISSIONS.slice(3).map((mission) => {
                     const isCompleted = completedMissions.includes(mission.id);
-                    const IconComp =
-                      mission.id === 1
-                        ? Icon6
-                        : mission.id === 2
-                          ? Icon1
-                          : mission.id === 3
-                            ? Icon2
-                            : mission.id === 4
-                              ? Icon3
-                              : mission.id === 5
-                                ? Icon4
-                                : Icon5;
+                    const IconComp = getMissionIcon(mission.id);
 
                     return (
                       <div
@@ -362,21 +345,7 @@ export default function Home() {
             const isCompleted = completedMissions.includes(mission.id);
             if (isCompleted) return null;
 
-            // Select the matching icon component
-            const IconComp =
-              mission.id === 1
-                ? Icon6
-                : mission.id === 2
-                  ? Icon1
-                  : mission.id === 3
-                    ? Icon2
-                    : mission.id === 4
-                      ? Icon3
-                      : mission.id === 5
-                        ? Icon4
-                        : mission.id === 6
-                          ? Icon5
-                          : () => null;
+            const IconComp = getMissionIcon(mission.id);
 
             let formattedDesc = mission.description.replace(/\n/g, " ");
             if (mission.id === 1)
@@ -394,7 +363,7 @@ export default function Home() {
                 "하객과 함께 하트를 만들고 셀카를 촬영해주세요!",
                 "하객과 함께\n하트를 만들고 셀카를 촬영해주세요!",
               );
-            if (mission.id === 4)
+            if (false)
               formattedDesc = formattedDesc.replace(
                 "물건을 찾아 사진을 촬영해주세요!",
                 "물건을 찾아\n사진을 촬영해주세요!",

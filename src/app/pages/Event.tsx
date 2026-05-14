@@ -21,9 +21,19 @@ type UserData = {
   table_no: string;
   missions: Record<number, string | null>;
   missionPhotos: Record<number, string | null>;
+  secretWordId: string | null;
   secretWord: string;
   qrLink: string;
 };
+
+type SecretWordOption = {
+  id: string;
+  title: string;
+  assigned_count: number;
+  max_count: number;
+};
+
+const ACTIVE_MISSION_IDS = [1, 2, 3, 5, 6];
 
 export default function Event() {
   const navigate = useNavigate();
@@ -40,6 +50,10 @@ export default function Event() {
   const [newName, setNewName] = useState("");
   const [newNickname, setNewNickname] = useState("");
   const [newTableNo, setNewTableNo] = useState("");
+  const [selectedSecretWordId, setSelectedSecretWordId] = useState("auto");
+  const [secretWordOptions, setSecretWordOptions] = useState<
+    SecretWordOption[]
+  >([]);
   const [isLoading, setIsLoading] = useState(false);
 
   // Bulk Add State
@@ -85,6 +99,7 @@ export default function Event() {
         name,
         nickname,
         table_no,
+        secret_word_id,
         secret_words (
           title
         ),
@@ -107,13 +122,13 @@ export default function Event() {
         1: null,
         2: null,
         3: null,
-        4: null,
         5: null,
         6: null,
       };
       const missionPhotos: Record<number, string | null> = {};
 
       guest.guest_missions?.forEach((gm: any) => {
+        if (!ACTIVE_MISSION_IDS.includes(gm.mission_id)) return;
         if (gm.is_completed || gm.mission_image) {
           missions[gm.mission_id] = "O";
         }
@@ -129,12 +144,86 @@ export default function Event() {
         table_no: guest.table_no || "",
         missions,
         missionPhotos,
+        secretWordId: guest.secret_word_id || null,
         secretWord: guest.secret_words?.title || "지정 안됨",
         qrLink: `${window.location.origin}/?guestId=${guest.id}`,
       };
     });
 
     setUsers(formattedUsers);
+  };
+
+  const loadSecretWords = async () => {
+    const { data, error } = await supabase
+      .from("secret_words")
+      .select("id, title, assigned_count, max_count")
+      .order("id", { ascending: true });
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setSecretWordOptions(data || []);
+  };
+
+  const handleUpdateGuestSecretWord = async (
+    user: UserData,
+    nextSecretWordId: string,
+  ) => {
+    const previousSecretWordId = user.secretWordId;
+    const normalizedNextSecretWordId =
+      nextSecretWordId === "none" ? null : nextSecretWordId;
+
+    if (previousSecretWordId === normalizedNextSecretWordId) return;
+
+    try {
+      const { error } = await supabase
+        .from("guests")
+        .update({ secret_word_id: normalizedNextSecretWordId })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      const nextOptions = secretWordOptions.map((word) => {
+        if (word.id === previousSecretWordId) {
+          return {
+            ...word,
+            assigned_count: Math.max(0, word.assigned_count - 1),
+          };
+        }
+        if (word.id === normalizedNextSecretWordId) {
+          return {
+            ...word,
+            assigned_count: word.assigned_count + 1,
+          };
+        }
+        return word;
+      });
+
+      setSecretWordOptions(nextOptions);
+
+      await Promise.all(
+        nextOptions
+          .filter(
+            (word) =>
+              word.id === previousSecretWordId ||
+              word.id === normalizedNextSecretWordId,
+          )
+          .map((word) =>
+            supabase
+              .from("secret_words")
+              .update({ assigned_count: word.assigned_count })
+              .eq("id", word.id),
+          ),
+      );
+
+      await loadUsers();
+      await loadSecretWords();
+    } catch (err) {
+      console.error("Error updating guest secret word:", err);
+      alert("비밀의 단어 변경 중 오류가 발생했습니다.");
+    }
   };
 
   const handleAddGuest = async (e: React.FormEvent) => {
@@ -151,7 +240,21 @@ export default function Event() {
         .select("id, assigned_count, max_count")
         .order("id", { ascending: true }); // ID 순으로 오름차순 정렬
 
-      if (wordsData) {
+      if (selectedSecretWordId !== "auto") {
+        const selectedWord = wordsData?.find(
+          (word: any) => word.id === selectedSecretWordId,
+        );
+
+        if (!selectedWord) {
+          throw new Error("선택한 비밀의 단어를 찾을 수 없습니다.");
+        }
+
+        selectedWordId = selectedWord.id;
+        await supabase
+          .from("secret_words")
+          .update({ assigned_count: selectedWord.assigned_count + 1 })
+          .eq("id", selectedWord.id);
+      } else if (wordsData) {
         // 아직 인원(max_count)이 다 안 찬 단어들만 필터링
         const availableWords = wordsData.filter(
           (w: any) => w.assigned_count < w.max_count,
@@ -193,7 +296,7 @@ export default function Event() {
 
       const guestId = guestData.id;
 
-      const missionsToInsert = [1, 2, 3, 4, 5, 6].map((missionId) => ({
+      const missionsToInsert = ACTIVE_MISSION_IDS.map((missionId) => ({
         guest_id: guestId,
         mission_id: missionId,
         is_completed: false,
@@ -211,6 +314,8 @@ export default function Event() {
       setNewName("");
       setNewNickname("");
       setNewTableNo("");
+      setSelectedSecretWordId("auto");
+      await loadSecretWords();
     } catch (err) {
       console.error("Error adding guest:", err);
       alert("하객 추가 중 오류가 발생했습니다.");
@@ -301,7 +406,7 @@ export default function Event() {
         // 4. 미션 일괄 생성
         const missionsToInsert: any[] = [];
         insertedGuests.forEach((guest) => {
-          [1, 2, 3, 4, 5, 6].forEach((missionId) => {
+          ACTIVE_MISSION_IDS.forEach((missionId) => {
             missionsToInsert.push({
               guest_id: guest.id,
               mission_id: missionId,
@@ -371,6 +476,7 @@ export default function Event() {
 
   useEffect(() => {
     loadUsers();
+    loadSecretWords();
   }, []);
 
   return (
@@ -479,7 +585,7 @@ export default function Event() {
             <div className="text-3xl font-bold text-lime-600">
               {
                 users.filter((u) =>
-                  [1, 2, 3, 4, 5, 6].every((m) => u.missions[m] !== null),
+                  ACTIVE_MISSION_IDS.every((m) => u.missions[m] !== null),
                 ).length
               }
             </div>
@@ -519,7 +625,6 @@ export default function Event() {
                   <th className="font-[00] px-3 py-4 text-center">미션 1</th>
                   <th className="font-[00] px-3 py-4 text-center">미션 2</th>
                   <th className="font-[00] px-3 py-4 text-center">미션 3</th>
-                  <th className="font-[00] px-3 py-4 text-center">미션 4</th>
                   <th className="font-[00] px-3 py-4 text-center">미션 5</th>
                   <th className="font-[00] px-3 py-4 text-center">미션 6</th>
                   <th
@@ -563,7 +668,7 @@ export default function Event() {
                         {user.table_no}
                       </span>
                     </td>
-                    {[1, 2, 3, 4, 5, 6].map((m) => {
+                    {ACTIVE_MISSION_IDS.map((m) => {
                       const score = user.missions[m];
                       const photo = user.missionPhotos[m];
                       return (
@@ -589,9 +694,20 @@ export default function Event() {
                       );
                     })}
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-[6px] text-xs font-bold bg-white text-gray-700 border border-rose-200 shadow-sm">
-                        {user.secretWord}
-                      </span>
+                      <select
+                        value={user.secretWordId || "none"}
+                        onChange={(e) =>
+                          handleUpdateGuestSecretWord(user, e.target.value)
+                        }
+                        className="max-w-[180px] px-2.5 py-1 rounded-[6px] text-xs font-bold bg-white text-gray-700 border border-rose-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-400/20 focus:border-rose-400"
+                      >
+                        <option value="none">지정 안됨</option>
+                        {secretWordOptions.map((word) => (
+                          <option key={word.id} value={word.id}>
+                            {word.title} ({word.assigned_count}/{word.max_count})
+                          </option>
+                        ))}
+                      </select>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 max-w-[160px]">
@@ -730,6 +846,23 @@ export default function Event() {
                   className="w-full px-4 py-3 border border-gray-200 rounded-[12px] text-sm focus:outline-none focus:ring-2 focus:ring-rose-400/20 focus:border-rose-400 bg-gray-50 focus:bg-white transition-colors placeholder:text-gray-400 font-medium"
                   required
                 />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-bold text-gray-700 ml-1">
+                  비밀의 단어
+                </label>
+                <select
+                  value={selectedSecretWordId}
+                  onChange={(e) => setSelectedSecretWordId(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-[12px] text-sm focus:outline-none focus:ring-2 focus:ring-rose-400/20 focus:border-rose-400 bg-gray-50 focus:bg-white transition-colors font-medium"
+                >
+                  <option value="auto">자동 배정</option>
+                  {secretWordOptions.map((word) => (
+                    <option key={word.id} value={word.id}>
+                      {word.title} ({word.assigned_count}/{word.max_count})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="pt-4 flex gap-3">

@@ -14,7 +14,6 @@ import { Scanner } from "@yudiel/react-qr-scanner";
 import Lottie from "lottie-react";
 import photoAnimation from "../../assets/photo-animation.json";
 import heartAnimation from "../../assets/heart-animation.json";
-import treasureAnimation from "../../assets/treasure-animation.json";
 import foodAnimation from "../../assets/food-animation.json";
 import ideaAnimation from "../../assets/idea-animation.json";
 import searchAnimation from "../../assets/search-animation.json";
@@ -250,7 +249,7 @@ export default function MissionDetail() {
       .eq("guest_id", guestId)
       .eq("is_completed", true);
 
-    if (data && data.length >= 6) {
+    if (data && data.length >= MISSIONS.length) {
       await supabase
         .from("guests")
         .update({ mission_complete_at: new Date().toISOString() })
@@ -508,13 +507,6 @@ export default function MissionDetail() {
                 </div>
               </div>
             )}
-            {!isCompleted && !uploadedImage && mission.id === 4 && (
-              <div className="w-full flex justify-center mt-[40px] mb-2 ">
-                <div className="w-48 h-48">
-                  <Lottie animationData={treasureAnimation} loop={true} />
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -690,34 +682,48 @@ export default function MissionDetail() {
                   </span>
                 </div>
                 <div className="flex flex-col items-center gap-1.5">
-                  <span className="text-3xl mb-1">🥖</span>{" "}
                   <div className="text-center">
-                    <p className="text-[15px] font-bold">식전 빵</p>
+                    <p className="text-[15px] font-bold">포카치아</p>
                     <p className="text-xs text-gray-500 mt-0.5 font-normal">
-                      Fresh Baked Bread
+                      Focaccia
                     </p>
                   </div>
                 </div>
                 <div className="flex flex-col items-center gap-1.5">
-                  <span className="text-3xl mb-1">🥗</span>{" "}
                   <div className="text-center">
-                    <p className="text-[15px] font-bold">훈제 연어 샐러드</p>
+                    <p className="text-[15px] font-bold">구운 감자 스프</p>
                     <p className="text-xs text-gray-500 mt-0.5 font-normal">
-                      Smoked Salmon Salad
+                      Roasted Potato Soup
                     </p>
                   </div>
                 </div>
                 <div className="flex flex-col items-center gap-1.5">
-                  <span className="text-3xl mb-1">🥣</span>{" "}
                   <div className="text-center">
-                    <p className="text-[15px] font-bold">양송이 크림 수프</p>
+                    <p className="text-[15px] font-bold">튀긴 관자 요리</p>
                     <p className="text-xs text-gray-500 mt-0.5 font-normal">
-                      Mushroom Cream Soup
+                      Fried Scallop
                     </p>
                   </div>
                 </div>
                 <div className="flex flex-col items-center gap-1.5">
-                  <span className="text-3xl mb-1">🥩</span>{" "}
+                  <div className="text-center">
+                    <p className="text-[15px] font-bold">계절 그린 샐러드</p>
+                    <p className="text-xs text-gray-500 mt-0.5 font-normal">
+                      Seasonal Green Salad
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className="text-center">
+                    <p className="text-[15px] font-bold">
+                      콰트로 풍기 알프레도 파스타
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5 font-normal">
+                      Quattro Funghi Alfredo Pasta
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-1.5">
                   <div className="text-center">
                     <p className="text-[15px] font-bold">안심 스테이크</p>
                     <p className="text-xs text-gray-500 mt-0.5 font-normal">
@@ -726,16 +732,14 @@ export default function MissionDetail() {
                   </div>
                 </div>
                 <div className="flex flex-col items-center gap-1.5">
-                  <span className="text-3xl mb-1">🍰</span>{" "}
                   <div className="text-center">
-                    <p className="text-[15px] font-bold">티라미수 케이크</p>
+                    <p className="text-[15px] font-bold">티라미슈 케이크</p>
                     <p className="text-xs text-gray-500 mt-0.5 font-normal">
                       Tiramisu Cake
                     </p>
                   </div>
                 </div>
                 <div className="flex flex-col items-center gap-1.5">
-                  <span className="text-3xl mb-1">☕</span>{" "}
                   <div className="text-center">
                     <p className="text-[15px] font-bold">커피 또는 홍차</p>
                     <p className="text-xs text-gray-500 mt-0.5 font-normal">
