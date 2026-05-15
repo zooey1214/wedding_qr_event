@@ -9,7 +9,6 @@ import {
   ChevronUp,
   ChevronDown,
   ArrowUpDown,
-  Download,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import QRCode from "react-qr-code";
@@ -23,6 +22,7 @@ type UserData = {
   missionPhotos: Record<number, string | null>;
   secretWordId: string | null;
   secretWord: string;
+  contributionAmount: number;
   qrLink: string;
 };
 
@@ -56,11 +56,6 @@ export default function Event() {
   >([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Bulk Add State
-  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
-  const [bulkCount, setBulkCount] = useState<number>(76);
-  const [isBulkLoading, setIsBulkLoading] = useState(false);
-
   type SortConfig = { key: keyof UserData | null; direction: "asc" | "desc" };
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: null,
@@ -83,12 +78,32 @@ export default function Event() {
     return 0;
   });
 
-  const filteredAndSortedUsers = sortedUsers.filter((user) =>
-    user.name.includes(searchTerm) ||
-    user.nickname.includes(searchTerm) ||
-    user.table_no.includes(searchTerm) ||
-    user.secretWord.includes(searchTerm)
+  const searchKeywords = searchTerm
+    .split(",")
+    .map((keyword) => keyword.trim())
+    .filter(Boolean);
+
+  const filteredAndSortedUsers =
+    searchKeywords.length === 0
+      ? sortedUsers
+      : sortedUsers.filter((user) =>
+          searchKeywords.some((keyword) =>
+            [
+              user.name,
+              user.nickname,
+              user.table_no,
+              user.secretWord,
+              String(user.contributionAmount),
+            ].some((field) => field.includes(keyword)),
+          ),
+        );
+
+  const totalContributionAmount = users.reduce(
+    (sum, user) => sum + user.contributionAmount,
+    0,
   );
+
+  const formatWon = (amount: number) => amount.toLocaleString("ko-KR");
 
   const loadUsers = async () => {
     const { data: guestsData, error: guestsError } = await supabase
@@ -99,6 +114,7 @@ export default function Event() {
         name,
         nickname,
         table_no,
+        contribution_amount,
         secret_word_id,
         secret_words (
           title
@@ -146,6 +162,7 @@ export default function Event() {
         missionPhotos,
         secretWordId: guest.secret_word_id || null,
         secretWord: guest.secret_words?.title || "지정 안됨",
+        contributionAmount: Number(guest.contribution_amount || 0),
         qrLink: `${window.location.origin}/?guestId=${guest.id}`,
       };
     });
@@ -226,6 +243,44 @@ export default function Event() {
     }
   };
 
+  const handleUpdateContributionAmount = async (user: UserData) => {
+    const nextValue = window.prompt(
+      `${user.name}님의 축의금을 입력해주세요.`,
+      user.contributionAmount ? String(user.contributionAmount) : "",
+    );
+
+    if (nextValue === null) return;
+
+    const normalizedValue = Number(nextValue.replaceAll(",", "").trim() || 0);
+
+    if (!Number.isFinite(normalizedValue) || normalizedValue < 0) {
+      alert("축의금은 0 이상의 숫자로 입력해주세요.");
+      return;
+    }
+
+    const amount = Math.floor(normalizedValue);
+
+    try {
+      const { error } = await supabase
+        .from("guests")
+        .update({ contribution_amount: amount })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      setUsers((prevUsers) =>
+        prevUsers.map((prevUser) =>
+          prevUser.id === user.id
+            ? { ...prevUser, contributionAmount: amount }
+            : prevUser,
+        ),
+      );
+    } catch (err) {
+      console.error("Error updating contribution amount:", err);
+      alert("축의금 수정 중 오류가 발생했습니다.");
+    }
+  };
+
   const handleAddGuest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim() || !newNickname.trim() || !newTableNo.trim()) return;
@@ -286,6 +341,7 @@ export default function Event() {
             name: newName,
             nickname: newNickname,
             table_no: newTableNo,
+            contribution_amount: 0,
             secret_word_id: selectedWordId,
           },
         ])
@@ -324,151 +380,6 @@ export default function Event() {
     }
   };
 
-  const handleBulkAddGuest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (bulkCount <= 0 || bulkCount > 200) {
-      alert("생성할 인원수는 1~200명 사이여야 합니다.");
-      return;
-    }
-
-    setIsBulkLoading(true);
-
-    try {
-      const guestsToInsert = [];
-
-      // 1. 단어 정보 모두 불러오기
-      const { data: wordsData } = await supabase
-        .from("secret_words")
-        .select("id, assigned_count, max_count")
-        .order("id", { ascending: true });
-
-      // 메모리 내에서 단어 할당 카운트 추적
-      const wordCounts = new Map<string, number>();
-      if (wordsData) {
-        wordsData.forEach((w) => wordCounts.set(w.id, w.assigned_count));
-      }
-
-      // 단어 업데이트 내역 추적 (나중에 bulk update 용도)
-      const wordUpdates = new Map<string, number>();
-
-      for (let i = 1; i <= bulkCount; i++) {
-        let selectedWordId = null;
-
-        if (wordsData) {
-          const availableWords = wordsData.filter(
-            (w: any) => (wordCounts.get(w.id) || 0) < w.max_count,
-          );
-
-          if (availableWords.length > 0) {
-            const poolSize = 10;
-            const targetPool = availableWords.slice(0, poolSize);
-            const randomIndex = Math.floor(Math.random() * targetPool.length);
-            const selectedWord = targetPool[randomIndex];
-            selectedWordId = selectedWord.id;
-
-            // 메모리 업데이트
-            const newCount = (wordCounts.get(selectedWord.id) || 0) + 1;
-            wordCounts.set(selectedWord.id, newCount);
-            wordUpdates.set(selectedWord.id, newCount);
-          }
-        }
-
-        guestsToInsert.push({
-          name: `테스트${i}`,
-          nickname: `테스트${i}`,
-          table_no: `1`,
-          secret_word_id: selectedWordId,
-        });
-      }
-
-      // 2. 단어 카운트 Supabase 업데이트 (최적화를 위해 개별 업데이트하지만 Promise.all 사용)
-      if (wordUpdates.size > 0) {
-        const updatePromises = Array.from(wordUpdates.entries()).map(
-          ([id, count]) =>
-            supabase
-              .from("secret_words")
-              .update({ assigned_count: count })
-              .eq("id", id),
-        );
-        await Promise.all(updatePromises);
-      }
-
-      // 3. 게스트 일괄 생성 (.select()로 생성된 ID 가져오기)
-      // Supabase insert는 배열을 받아 일괄 처리 가능
-      const { data: insertedGuests, error: guestError } = await supabase
-        .from("guests")
-        .insert(guestsToInsert)
-        .select("id");
-
-      if (guestError) throw guestError;
-
-      if (insertedGuests && insertedGuests.length > 0) {
-        // 4. 미션 일괄 생성
-        const missionsToInsert: any[] = [];
-        insertedGuests.forEach((guest) => {
-          ACTIVE_MISSION_IDS.forEach((missionId) => {
-            missionsToInsert.push({
-              guest_id: guest.id,
-              mission_id: missionId,
-              is_completed: false,
-            });
-          });
-        });
-
-        // 미션이 너무 많으면(ex: 76 * 6 = 456개) 한 번에 들어감. Supabase 한도 내라면 괜찮음.
-        const { error: missionError } = await supabase
-          .from("guest_missions")
-          .insert(missionsToInsert);
-
-        if (missionError) throw missionError;
-      }
-
-      await loadUsers();
-      setIsBulkModalOpen(false);
-      setBulkCount(76);
-      alert(`${bulkCount}명의 대량 하객 생성이 완료되었습니다.`);
-    } catch (err) {
-      console.error("Error doing bulk insert:", err);
-      alert("대량 하객 생성 중 오류가 발생했습니다.");
-    } finally {
-      setIsBulkLoading(false);
-    }
-  };
-
-  const handleExportCSV = () => {
-    if (users.length === 0) {
-      alert("출력할 하객 데이터가 없습니다.");
-      return;
-    }
-
-    // CSV 헤더
-    let csvContent = "이름,닉네임,식사자리,비밀의단어,QR링크\n";
-
-    // 데이터 행 추가 (따옴표로 감싸서 엑셀에서 쉼표 오작동 방지)
-    users.forEach((user) => {
-      const name = `"${user.name}"`;
-      const nickname = `"${user.nickname}"`;
-      const tableNo = `"${user.table_no}"`;
-      const secretWord = `"${user.secretWord}"`;
-      const qrLink = `"${user.qrLink}"`;
-      csvContent += `${name},${nickname},${tableNo},${secretWord},${qrLink}\n`;
-    });
-
-    // UTF-8 BOM(Byte Order Mark) 추가 - 엑셀에서 한글이 깨지지 않게 하기 위함
-    const bom = "\uFEFF";
-    const blob = new Blob([bom + csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    
-    // 다운로드 트리거
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `하객_QR_리스트_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
   const openPhotoModal = (photoUrl: string) => {
     setCurrentPhoto(photoUrl);
     setPhotoModalOpen(true);
@@ -497,19 +408,6 @@ export default function Event() {
             />
           </div>
           <div className="flex flex-wrap justify-end gap-3">
-            <button
-              onClick={handleExportCSV}
-              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-[12px] text-sm font-bold hover:bg-indigo-100 hover:-translate-y-0.5 active:scale-[0.98] transition-all whitespace-nowrap"
-            >
-              <Download className="w-4 h-4" />
-              QR 리스트 뽑기 (CSV)
-            </button>
-            <button
-              onClick={() => setIsBulkModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gray-600 text-white border border-gray-600 rounded-[12px] text-sm font-bold hover:bg-gray-700 hover:-translate-y-0.5 active:scale-[0.98] transition-all whitespace-nowrap"
-            >
-              대량 생성
-            </button>
             <button
               onClick={() => navigate("/event/lottery")}
               className="flex items-center gap-2 px-4 py-2.5 bg-white border border-rose-300 rounded-[12px] text-sm font-bold text-rose-500 hover:bg-rose-50 hover:-translate-y-0.5 active:scale-[0.98] transition-all shadow-sm"
@@ -644,6 +542,12 @@ export default function Event() {
                       )}
                     </div>
                   </th>
+                  <th className="font-[00] px-6 py-4 text-center">
+                    <div>축의금</div>
+                    <div className="text-[11px] text-rose-500">
+                      ({formatWon(totalContributionAmount)}원)
+                    </div>
+                  </th>
                   <th className="font-[00] px-6 py-4">QR 링크</th>
                 </tr>
               </thead>
@@ -708,6 +612,15 @@ export default function Event() {
                           </option>
                         ))}
                       </select>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <button
+                        onClick={() => handleUpdateContributionAmount(user)}
+                        className="min-w-[92px] px-3 py-1.5 rounded-[8px] border border-lime-200 bg-lime-50 text-lime-700 text-xs font-bold hover:bg-lime-100 hover:border-lime-300 transition-colors"
+                        title="축의금 수정"
+                      >
+                        {formatWon(user.contributionAmount)}원
+                      </button>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 max-w-[160px]">
@@ -886,57 +799,6 @@ export default function Event() {
         </div>
       )}
 
-      {/* Modal for Bulk Adding Guests */}
-      {isBulkModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h2 className="text-lg font-bold text-gray-900">
-                대량 하객 생성
-              </h2>
-              <button
-                onClick={() => setIsBulkModalOpen(false)}
-                className="text-gray-400 hover:text-gray-700 bg-white hover:bg-gray-100 p-1.5 rounded-full transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleBulkAddGuest} className="p-6 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-sm font-bold text-gray-700 ml-1">
-                  생성할 하객 수 (1~200)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="200"
-                  value={bulkCount}
-                  onChange={(e) => setBulkCount(Number(e.target.value))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-[12px] text-sm focus:outline-none focus:ring-2 focus:ring-gray-400/20 focus:border-gray-400 bg-gray-50 focus:bg-white transition-colors font-medium"
-                  required
-                />
-              </div>
-
-              <div className="pt-4 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsBulkModalOpen(false)}
-                  className="flex-1 py-3 bg-white border border-gray-200 text-gray-500 rounded-[12px] font-bold hover:bg-gray-50 hover:-translate-y-0.5 active:scale-[0.98] transition-all shadow-sm"
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  disabled={isBulkLoading}
-                  className="flex-[2] py-3 bg-gray-800 text-white rounded-[12px] font-bold shadow-[0_4px_12px_rgba(31,41,55,0.3)] hover:bg-gray-900 hover:-translate-y-0.5 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isBulkLoading ? "생성 중..." : `${bulkCount}명 생성`}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
