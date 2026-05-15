@@ -18,19 +18,42 @@ import { Icon6 } from "../../components/icons/Icon6";
 import { supabase } from "../../lib/supabase";
 
 const WEDDING_PROGRAM = [
-  "식 전 이벤트",
-  "개식 선언 및 인삿말",
-  "양가 부모님 입장 및 인사",
-  "신랑 입장",
-  "신부 입장",
-  "신랑 신부 맞절",
-  "주례 및 혼인 서약",
-  "성혼 선언",
-  "축가",
-  "축하 편지 낭독",
-  "신랑 신부 인사",
-  "신랑 신부 행진",
-  "사진 촬영 안내",
+  { title: "식 전 이벤트" },
+  { title: "개식 선언 및 인삿말" },
+  { title: "양가 부모님 입장 및 인사" },
+  { title: "신랑 입장" },
+  { title: "신부 입장" },
+  { title: "신랑 신부 맞절" },
+  {
+    title: "주례 및 혼인 서약",
+    scripture: {
+      reference: "창세기 2 : 22-25",
+      verses: [
+        {
+          number: 22,
+          text: "주 하나님이 남자에게서 뽑아 낸 갈빗대로 여자를 만드시고, 여자를 남자에게로 데리고 오셨다.",
+        },
+        {
+          number: 23,
+          text: '그 때에 그 남자가 말하였다. "이제야 나타났구나, 이 사람! 뼈도 나의 뼈, 살도 나의 살, 남자에게서 나왔으니 여자라고 부를 것이다."',
+        },
+        {
+          number: 24,
+          text: "그러므로 남자는 아버지와 어머니를 떠나, 아내와 결합하여 한 몸을 이루는 것이다.",
+        },
+        {
+          number: 25,
+          text: "남자와 그 아내가 둘 다 벌거벗고 있었으나, 부끄러워하지 않았다.",
+        },
+      ],
+    },
+  },
+  { title: "성혼 선언" },
+  { title: "축가" },
+  { title: "축하 편지 낭독" },
+  { title: "신랑 신부 인사" },
+  { title: "신랑 신부 행진" },
+  { title: "사진 촬영 안내" },
 ];
 
 const getMissionIcon = (missionId: number) => {
@@ -536,15 +559,37 @@ export default function Home() {
               <ol className="space-y-3">
                 {WEDDING_PROGRAM.map((item, index) => (
                   <li
-                    key={`${item}-${index}`}
-                    className="flex items-center gap-3 rounded-[16px] bg-[#FFF8F9] border border-rose-100/80 px-4 py-3"
+                    key={`${item.title}-${index}`}
+                    className="flex items-start gap-3 rounded-[16px] bg-[#FFF8F9] border border-rose-100/80 px-4 py-3"
                   >
                     <span className="w-8 h-8 flex-shrink-0 rounded-full bg-white border border-rose-200 text-rose-500 text-sm font-black flex items-center justify-center">
                       {index + 1}
                     </span>
-                    <span className="text-[15px] font-bold text-gray-800 leading-snug">
-                      {item}
-                    </span>
+                    <div className="min-w-0 flex-1">
+                      <span className="block text-[15px] font-bold text-gray-800 leading-snug">
+                        {item.title}
+                      </span>
+                      {item.scripture && (
+                        <div className="mt-3 rounded-[14px] bg-white border border-rose-100 px-4 py-3 text-gray-700">
+                          <p className="text-sm font-black text-rose-500 mb-2">
+                            {item.scripture.reference}
+                          </p>
+                          <div className="space-y-2">
+                            {item.scripture.verses.map((verse) => (
+                              <p
+                                key={verse.number}
+                                className="text-[13px] leading-relaxed"
+                              >
+                                <span className="mr-2 font-black text-gray-900">
+                                  {verse.number}
+                                </span>
+                                {verse.text}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ol>

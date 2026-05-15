@@ -9,6 +9,7 @@ import {
   ChevronUp,
   ChevronDown,
   ArrowUpDown,
+  Download,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import QRCode from "react-qr-code";
@@ -35,12 +36,114 @@ type SecretWordOption = {
 
 const ACTIVE_MISSION_IDS = [1, 2, 3, 5, 6];
 
+const QR_PRINT_GROUPS = [
+  { label: "1그룹", names: ["한드레", "한헤세", "장서영"] },
+  { label: "2그룹", names: ["이웅희", "최다민", "최태백", "정수정"] },
+  { label: "3그룹", names: ["전준혁", "전준호"] },
+  { label: "4그룹", names: ["진승재", "이정윤"] },
+  { label: "5그룹", names: ["오승제", "김규리"] },
+  { label: "6그룹", names: ["정성호", "민혜리", "정하진"] },
+  { label: "7그룹", names: ["노승현", "신희라"] },
+  {
+    label: "8그룹",
+    names: [
+      "정성만",
+      "권택례",
+      "이형구",
+      "권택자",
+      "윤재돈",
+      "권옥주",
+      "권택근",
+      "강혜경",
+      "권찬희",
+      "손송이",
+    ],
+  },
+  {
+    label: "9그룹",
+    names: ["이상홍", "김미애", "유영민", "이서정", "이상원", "이원희", "유하영"],
+  },
+  {
+    label: "10그룹 (신부 친가)",
+    names: ["송태경", "오재덕", "송휘용", "송휘용아내"],
+  },
+  {
+    label: "11그룹 (신부 외가)",
+    names: ["이봉준", "박주익", "이명진", "이상호", "정춘금"],
+  },
+  { label: "12그룹", names: ["이태민", "오예슬"] },
+] as const;
+
+const QR_CARDS_PER_PAGE = 4;
+
+type QrPrintUser = UserData & {
+  qrPrintGroupLabel: string;
+  qrPrintGroupIndex: number;
+  qrPrintNameIndex: number;
+};
+
+const qrPrintGroupByName = QR_PRINT_GROUPS.reduce(
+  (acc, group, groupIndex) => {
+    group.names.forEach((name, nameIndex) => {
+      acc.set(name, {
+        label: group.label,
+        groupIndex,
+        nameIndex,
+      });
+    });
+    return acc;
+  },
+  new Map<
+    string,
+    {
+      label: string;
+      groupIndex: number;
+      nameIndex: number;
+    }
+  >(),
+);
+
+const getQrPrintUsers = (users: UserData[]): QrPrintUser[] =>
+  users
+    .map((user, originalIndex) => {
+      const groupInfo = qrPrintGroupByName.get(user.name.trim());
+
+      return {
+        ...user,
+        qrPrintGroupLabel: groupInfo?.label || "ㄱ-ㅎ",
+        qrPrintGroupIndex: groupInfo?.groupIndex ?? QR_PRINT_GROUPS.length,
+        qrPrintNameIndex: groupInfo?.nameIndex ?? originalIndex,
+      };
+    })
+    .sort((a, b) => {
+      if (a.qrPrintGroupIndex !== b.qrPrintGroupIndex) {
+        return a.qrPrintGroupIndex - b.qrPrintGroupIndex;
+      }
+
+      if (a.qrPrintGroupIndex < QR_PRINT_GROUPS.length) {
+        if (a.qrPrintNameIndex !== b.qrPrintNameIndex) {
+          return a.qrPrintNameIndex - b.qrPrintNameIndex;
+        }
+      }
+
+      const nameSort = a.name.localeCompare(b.name, "ko-KR");
+      if (nameSort !== 0) return nameSort;
+
+      return a.nickname.localeCompare(b.nickname, "ko-KR");
+    });
+
+const chunkQrPrintUsers = (users: QrPrintUser[]) =>
+  Array.from({ length: Math.ceil(users.length / QR_CARDS_PER_PAGE) }, (_, index) =>
+    users.slice(index * QR_CARDS_PER_PAGE, (index + 1) * QR_CARDS_PER_PAGE),
+  );
+
 export default function Event() {
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserData[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [qrModalUser, setQrModalUser] = useState<UserData | null>(null);
+  const [isQrPrintMode, setIsQrPrintMode] = useState(false);
 
   // Photo Modal State
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
@@ -102,6 +205,8 @@ export default function Event() {
     (sum, user) => sum + user.contributionAmount,
     0,
   );
+  const qrPrintUsers = getQrPrintUsers(users);
+  const qrPrintPages = chunkQrPrintUsers(qrPrintUsers);
 
   const formatWon = (amount: number) => amount.toLocaleString("ko-KR");
 
@@ -385,6 +490,26 @@ export default function Event() {
     setPhotoModalOpen(true);
   };
 
+  const handleDownloadQrPdf = () => {
+    if (users.length === 0) {
+      alert("출력할 하객 데이터가 없습니다.");
+      return;
+    }
+
+    const originalTitle = document.title;
+    document.title = `wedding_qr_${new Date().toISOString().slice(0, 10)}`;
+    setIsQrPrintMode(true);
+
+    const handleAfterPrint = () => {
+      document.title = originalTitle;
+      setIsQrPrintMode(false);
+      window.removeEventListener("afterprint", handleAfterPrint);
+    };
+
+    window.addEventListener("afterprint", handleAfterPrint);
+    window.setTimeout(() => window.print(), 100);
+  };
+
   useEffect(() => {
     loadUsers();
     loadSecretWords();
@@ -408,6 +533,13 @@ export default function Event() {
             />
           </div>
           <div className="flex flex-wrap justify-end gap-3">
+            <button
+              onClick={handleDownloadQrPdf}
+              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-[12px] text-sm font-bold hover:bg-indigo-100 hover:-translate-y-0.5 active:scale-[0.98] transition-all whitespace-nowrap"
+            >
+              <Download className="w-4 h-4" />
+              QR PDF 다운로드
+            </button>
             <button
               onClick={() => navigate("/event/lottery")}
               className="flex items-center gap-2 px-4 py-2.5 bg-white border border-rose-300 rounded-[12px] text-sm font-bold text-rose-500 hover:bg-rose-50 hover:-translate-y-0.5 active:scale-[0.98] transition-all shadow-sm"
@@ -796,6 +928,135 @@ export default function Event() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {isQrPrintMode && (
+        <div className="qr-print-area">
+          <style>
+            {`
+              @media screen {
+                .qr-print-area {
+                  display: none;
+                }
+              }
+
+              @media print {
+                @page {
+                  size: A4 portrait;
+                  margin: 10mm;
+                }
+
+                body * {
+                  visibility: hidden !important;
+                }
+
+                .qr-print-area,
+                .qr-print-area * {
+                  visibility: visible !important;
+                }
+
+                .qr-print-area {
+                  display: block !important;
+                  position: absolute;
+                  inset: 0;
+                  width: 190mm;
+                  background: #ffffff;
+                  color: #111827;
+                  font-family: Arial, sans-serif;
+                }
+
+                .qr-print-page {
+                  display: grid;
+                  grid-template-columns: repeat(2, 1fr);
+                  grid-template-rows: repeat(2, 1fr);
+                  gap: 8mm;
+                  width: 190mm;
+                  height: 277mm;
+                  break-after: page;
+                  page-break-after: always;
+                }
+
+                .qr-print-page:last-child {
+                  break-after: auto;
+                  page-break-after: auto;
+                }
+
+                .qr-print-card {
+                  display: flex;
+                  flex-direction: column;
+                  align-items: center;
+                  justify-content: center;
+                  min-height: 0;
+                  border: 1px solid #e5e7eb;
+                  border-radius: 6mm;
+                  padding: 8mm;
+                  box-sizing: border-box;
+                }
+
+                .qr-print-group {
+                  align-self: flex-start;
+                  margin-bottom: 4mm;
+                  border: 1px solid #fecdd3;
+                  border-radius: 999px;
+                  padding: 1.5mm 3mm;
+                  color: #be123c;
+                  font-size: 9pt;
+                  font-weight: 700;
+                }
+
+                .qr-print-name {
+                  margin: 0 0 2mm;
+                  font-size: 20pt;
+                  font-weight: 800;
+                  line-height: 1.15;
+                }
+
+                .qr-print-nickname,
+                .qr-print-table {
+                  margin: 0;
+                  font-size: 10pt;
+                  color: #4b5563;
+                  line-height: 1.4;
+                }
+
+                .qr-print-code {
+                  margin: 6mm 0 4mm;
+                }
+
+                .qr-print-link {
+                  width: 100%;
+                  margin: 0;
+                  font-size: 7pt;
+                  line-height: 1.35;
+                  color: #6b7280;
+                  text-align: center;
+                  word-break: break-all;
+                }
+              }
+            `}
+          </style>
+
+          {qrPrintPages.map((pageUsers, pageIndex) => (
+            <section className="qr-print-page" key={pageIndex}>
+              {pageUsers.map((user) => (
+                <article className="qr-print-card" key={user.id}>
+                  <div className="qr-print-group">{user.qrPrintGroupLabel}</div>
+                  <h2 className="qr-print-name">{user.name}</h2>
+                  {user.nickname && (
+                    <p className="qr-print-nickname">{user.nickname}</p>
+                  )}
+                  {user.table_no && (
+                    <p className="qr-print-table">식사자리: {user.table_no}</p>
+                  )}
+                  <div className="qr-print-code">
+                    <QRCode value={user.qrLink} size={150} />
+                  </div>
+                  <p className="qr-print-link">{user.qrLink}</p>
+                </article>
+              ))}
+            </section>
+          ))}
         </div>
       )}
 
